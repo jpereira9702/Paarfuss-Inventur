@@ -6,39 +6,93 @@
 </head>
 <body>
     <h1>Inventur APP</h1>
+    <h2>Neues Produkt hinzufügen</h2>
 
-    <h2>Fußcreme</h2>
-    <p>Bestand: <span id="bestand">5</span></p>
-    <p>Mindestbestand: 2</p>
-    <p id="status" style= "color: red; font-weight: bold;"></p>
+    <input id="nameEingabe" placeholder="Produktname"/>
+    <input id="bestandEingabe" placeholder="Bestand" type="number"/>
+    <input id="mindestbestandEingabe" placeholder="Mindestbestand" type="number"/>
+    <button onclick="produkthinzufügen()"> Produkt hinzufügen </button>
+    <div id="produktListe"></div>
 
-    <button onclick="bestandErhoehen()">+</button>
-    <button onclick="bestandVerringern()">-</button>
     <script>
-        let bestand = 5;
-        let mindestbestand = 2;
-        function bestandErhoehen() {
-            bestand = bestand + 1;
-            anzeigeAktualisieren();
-        }
-
-        function bestandVerringern(){
-            bestand = bestand - 1;
-            anzeigeAktualisieren();
-        }
-
-        function anzeigeAktualisieren() {
-            document.getElementById("bestand").textContent = bestand;
-
-            if (bestand <= mindestbestand) {
-                document.getElementById("status").textContent = "Nachbestellen";
+        let produkte = [
+            {
+                name: "Fußcreme",
+                bestand: 5,
+                mindestbestand: 2
+            },
+            {
+                name: "Handschuhe",
+                bestand: 20,
+                mindestbestand: 10
+            },
+            {
+                name: "Desinfektionsmittel",
+                bestand: 3,
+                mindestbestand: 4
             }
-            else {
-                document.getElementById("status").textContent = "";
-            }
-        }
+        ];
+
         
 
+        function produkteAnzeigen() {
+            let liste = document.getElementById("produktListe");
+
+            liste.innerHTML = "";
+
+            for (let i = 0; i < produkte.length; i++) {
+                let produkt = produkte[i];
+
+                let status = "";
+
+                if (produkt.bestand <= produkt.mindestbestand) {
+                    status = "Nachbestellen";
+                }
+
+                liste.innerHTML += `
+                    <div>
+                        <h2>${produkt.name}</h2>
+                        <p>Bestand: ${produkt.bestand}</p>
+                        <p>Mindestbestand: ${produkt.mindestbestand}</p>
+                        <p style="color: red; font-weight: bold;">${status}</p>
+
+                        <button onclick="bestandErhoehen(${i})">+</button>
+                        <button onclick="bestandVerringern(${i})">-</button>
+                    </div>
+                    <hr>
+                `;
+            }
+        }
+
+        function bestandErhoehen(index) {
+            produkte[index].bestand = produkte[index].bestand + 1;
+            produkteAnzeigen();
+        }
+
+        function bestandVerringern(index) {
+            produkte[index].bestand = produkte[index].bestand - 1;
+            produkteAnzeigen();
+        }
+        function produkthinzufügen()
+        {
+            let name = document.getElementById("nameEingabe").value;
+            let bestand = Number(document.getElementById("bestandEingabe").value);
+            let mindestbestand = Number(document.getElementById("mindestbestandEingabe").value);
+
+            let neuesProdukt = {
+                name: name,
+                bestand: bestand,
+                mindestbestand: mindestbestand
+            }
+
+            produkte.push(neuesProdukt);
+            produkteAnzeigen();
+
+            document.getElementById("nameEingabe").value = "";
+            document.getElementById("bestandEingabe").value = "";
+            document.getElementById("mindestbestandEingabe").value = "";
+        }
+        produkteAnzeigen();
     </script>
 </body>
 </html>
