@@ -6,39 +6,187 @@
 </head>
 <body>
     <h1>Inventur APP</h1>
+    <h2>Neues Produkt hinzufügen</h2>
 
-    <h2>Fußcreme</h2>
-    <p>Bestand: <span id="bestand">5</span></p>
-    <p>Mindestbestand: 2</p>
-    <p id="status" style= "color: red; font-weight: bold;"></p>
+    <input id="nameEingabe" placeholder="Produktname"/>
+    <input id="bestandEingabe" placeholder="Bestand" type="number"/>
+    <input id="mindestbestandEingabe" placeholder="Mindestbestand" type="number"/>
+    <button onclick="produkthinzufügen()"> Produkt hinzufügen </button>
+    <div id="produktListe"></div>
 
-    <button onclick="bestandErhoehen()">+</button>
-    <button onclick="bestandVerringern()">-</button>
     <script>
-        let bestand = 5;
-        let mindestbestand = 2;
-        function bestandErhoehen() {
-            bestand = bestand + 1;
-            anzeigeAktualisieren();
+        let produkte = [
+            {
+                name: "Fußcreme",
+                bestand: 5,
+                mindestbestand: 2
+            },
+            {
+                name: "Handschuhe",
+                bestand: 20,
+                mindestbestand: 10
+            },
+            {
+                name: "Desinfektionsmittel",
+                bestand: 3,
+                mindestbestand: 4
+            }
+        ];
+
+        
+
+        function produkteAnzeigen() {
+            let liste = document.getElementById("produktListe");
+
+            liste.innerHTML = "";
+
+            for (let i = 0; i < produkte.length; i++) {
+                let produkt = produkte[i];
+
+                let status = "";
+
+                if (produkt.bestand <= produkt.mindestbestand) {
+                    status = "Nachbestellen";
+                }
+
+                liste.innerHTML += `
+                    <div>
+                        <h2>${produkt.name}</h2>
+                        <p>Bestand: ${produkt.bestand}</p>
+                        <p>Mindestbestand: ${produkt.mindestbestand}</p>
+                        <p style="color: red; font-weight: bold;">${status}</p>
+
+                        <button onclick="bestandErhoehen(${i})">+</button>
+                        <button onclick="bestandVerringern(${i})">-</button>
+                        <button onclick="produktEntfernen(${i})">Löschen</button>
+                        <button onclick="produktBearbeiten(${i})">Bearbeiten</button>
+                    </div>
+                    <hr>
+                `;
+            }
         }
 
-        function bestandVerringern(){
-            bestand = bestand - 1;
-            anzeigeAktualisieren();
+        function produkteSpeichern()
+        {
+            localStorage.setItem("produkte", JSON.stringify(produkte));
         }
 
-        function anzeigeAktualisieren() {
-            document.getElementById("bestand").textContent = bestand;
+        function produkteLaden()
+        {
+            let gespeicherteProdukte = localStorage.getItem("produkte");
+            if (gespeicherteProdukte !== null)
+            {
+                produkte = JSON.parse(gespeicherteProdukte);
+            }
+        }
 
-            if (bestand <= mindestbestand) {
-                document.getElementById("status").textContent = "Nachbestellen";
+
+
+        function bestandErhoehen(index) {
+            produkte[index].bestand = produkte[index].bestand + 1;
+            produkteSpeichern();
+            produkteAnzeigen();
+        }
+
+        function bestandVerringern(index) {
+
+            if (produkte[index].bestand <= 0)
+            {
+                alert("Es sind keine negativen Bestände erlaubt!");
+                return;
             }
-            else {
-                document.getElementById("status").textContent = "";
+
+            produkte[index].bestand = produkte[index].bestand - 1;
+            produkteSpeichern();
+            produkteAnzeigen();
+        }
+
+        function produktEntfernen(index)
+        {
+            produkte.splice(index, 1);
+            produkteSpeichern();
+            produkteAnzeigen();
+        }
+
+        function produktBearbeiten(index)
+        {
+            let produkt = produkte[index];
+
+            let neuerName = prompt("Neuer Produktname:", produkt.name);
+            let neuerBestandText = prompt("Neuer Bestand:", produkt.bestand);
+            let neuerMindestbestandText = prompt("Neuer Mindestbestand:", produkt.mindestbestand);
+
+            if(neuerName === null || neuerBestandText === null || neuerMindestbestandText === null)
+            {
+                return;
             }
+
+            neuerName = neuerName.trim();
+
+            if (neuerName === "" || neuerBestandText === "" || neuerMindestbestandText === "")
+            {
+                alert("Bitte alle Felder ausfüllen!");
+                return;
+            }
+
+            let neuerBestand = Number(neuerBestandText);
+            let neuerMindestbestand = Number(neuerMindestbestandText);
+
+            if(neuerBestand < 0 || neuerMindestbestand < 0)
+            {
+                alert("Es sind keine negativen Zahlen erlaubt!");
+                return;
+            }
+
+            produkt.name = neuerName;
+            produkt.bestand = neuerBestand;
+            produkt.mindestbestand = neuerMindestbestand;
+
+            produkteSpeichern();
+            produkteAnzeigen();
         }
         
 
+        function produkthinzufügen()
+        {
+            let name = document.getElementById("nameEingabe").value.trim();
+            let bestandText = document.getElementById("bestandEingabe").value;
+            let mindestbestandText = document.getElementById("mindestbestandEingabe").value;
+
+            if(name === "" || bestandText === "" || mindestbestandText === "")
+            {
+                alert ("Bitte alle Felder ausfüllen!");
+                return;
+            }
+
+            let bestand = Number(bestandText);
+            let mindestbestand = Number(mindestbestandText);
+
+            if (bestand < 0 || mindestbestand < 0)
+            {
+                alert("Es sind keine Negativen Zahlen erlaubt!");
+                return;
+            }
+
+
+            let neuesProdukt = {
+                name: name,
+                bestand: bestand,
+                mindestbestand: mindestbestand
+            }
+
+            produkte.push(neuesProdukt);
+            produkteSpeichern();
+            produkteAnzeigen();
+
+            document.getElementById("nameEingabe").value = "";
+            document.getElementById("bestandEingabe").value = "";
+            document.getElementById("mindestbestandEingabe").value = "";
+
+            document.getElementById("nameEingabe").focus();
+        }
+        produkteLaden();
+        produkteAnzeigen();
     </script>
 </body>
 </html>
