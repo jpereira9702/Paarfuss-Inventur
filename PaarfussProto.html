@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>Inventur APP</title>
+</head>
+<body>
+    <h1>Inventur APP</h1>
+
+    <h2>Fußcreme</h2>
+    <p>Bestand: <span id="bestand">5</span></p>
+    <p>Mindestbestand: 2</p>
+    <p id="status" style= "color: red; font-weight: bold;"></p>
+
+    <button onclick="bestandErhoehen()">+</button>
+    <button onclick="bestandVerringern()">-</button>
+    <script>
+        let bestand = 5;
+        let mindestbestand = 2;
+        function bestandErhoehen() {
+            bestand = bestand + 1;
+            anzeigeAktualisieren();
+        }
+
+        function bestandVerringern(){
+            bestand = bestand - 1;
+            anzeigeAktualisieren();
+        }
+
+        function anzeigeAktualisieren() {
+            document.getElementById("bestand").textContent = bestand;
+
+            if (bestand <= mindestbestand) {
+                document.getElementById("status").textContent = "Nachbestellen";
+            }
+            else {
+                document.getElementById("status").textContent = "";
+            }
+        }
+        
+
+    </script>
+</body>
+</html>
