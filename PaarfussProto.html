@@ -11,7 +11,15 @@
     <input id="nameEingabe" placeholder="Produktname"/>
     <input id="bestandEingabe" placeholder="Bestand" type="number"/>
     <input id="mindestbestandEingabe" placeholder="Mindestbestand" type="number"/>
-    <button onclick="produkthinzufügen()"> Produkt hinzufügen </button>
+    <button id ="formularButton" onclick="produkthinzufügen()"> Produkt hinzufügen </button>
+    <button onclick="formularZurücksetzen()">Abbrechen</button>
+
+    <h2>Produktliste</h2>
+
+    <input id="sucheEingabe" placeholder="Suchen..." oninput="produkteAnzeigen()"> 
+
+
+
     <div id="produktListe"></div>
 
     <script>
@@ -33,15 +41,23 @@
             }
         ];
 
+        let bearbeitungsIndex = null;
+
         
 
         function produkteAnzeigen() {
             let liste = document.getElementById("produktListe");
+            let suchText = document.getElementById("sucheEingabe").value.toLowerCase();
 
             liste.innerHTML = "";
 
             for (let i = 0; i < produkte.length; i++) {
                 let produkt = produkte[i];
+
+                if(!produkt.name.toLowerCase().includes(suchText))
+                {
+                    continue;
+                }
 
                 let status = "";
 
@@ -111,39 +127,14 @@
         function produktBearbeiten(index)
         {
             let produkt = produkte[index];
+            document.getElementById("nameEingabe").value = produkt.name;
+            document.getElementById("bestandEingabe").value = produkt.bestand;
+            document.getElementById("mindestbestandEingabe").value = produkt.mindestbestand;
 
-            let neuerName = prompt("Neuer Produktname:", produkt.name);
-            let neuerBestandText = prompt("Neuer Bestand:", produkt.bestand);
-            let neuerMindestbestandText = prompt("Neuer Mindestbestand:", produkt.mindestbestand);
+            bearbeitungsIndex = index;
 
-            if(neuerName === null || neuerBestandText === null || neuerMindestbestandText === null)
-            {
-                return;
-            }
-
-            neuerName = neuerName.trim();
-
-            if (neuerName === "" || neuerBestandText === "" || neuerMindestbestandText === "")
-            {
-                alert("Bitte alle Felder ausfüllen!");
-                return;
-            }
-
-            let neuerBestand = Number(neuerBestandText);
-            let neuerMindestbestand = Number(neuerMindestbestandText);
-
-            if(neuerBestand < 0 || neuerMindestbestand < 0)
-            {
-                alert("Es sind keine negativen Zahlen erlaubt!");
-                return;
-            }
-
-            produkt.name = neuerName;
-            produkt.bestand = neuerBestand;
-            produkt.mindestbestand = neuerMindestbestand;
-
-            produkteSpeichern();
-            produkteAnzeigen();
+            document.getElementById("formularButton").textContent = "Produkt Speichern";
+            document.getElementById("nameEingabe").focus();
         }
         
 
@@ -169,22 +160,44 @@
             }
 
 
-            let neuesProdukt = {
+            let produktDaten = {
                 name: name,
                 bestand: bestand,
                 mindestbestand: mindestbestand
             }
 
-            produkte.push(neuesProdukt);
+
+            if (bearbeitungsIndex === null) 
+            {
+                produkte.push(produktDaten);
+            }
+            else
+            {
+                produkte[bearbeitungsIndex] = produktDaten;
+                bearbeitungsIndex = null;
+            }
+            
             produkteSpeichern();
             produkteAnzeigen();
+            formularZurücksetzen();
 
+
+           
+        }
+
+        function formularZurücksetzen()
+        {
             document.getElementById("nameEingabe").value = "";
             document.getElementById("bestandEingabe").value = "";
             document.getElementById("mindestbestandEingabe").value = "";
 
+            bearbeitungsIndex = null;
+
+            document.getElementById("formularButton").textContent = "Produkt hinzufügen";
             document.getElementById("nameEingabe").focus();
         }
+
+
         produkteLaden();
         produkteAnzeigen();
     </script>
