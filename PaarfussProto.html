@@ -17,7 +17,11 @@
     <h2>Produktliste</h2>
 
     <input id="sucheEingabe" placeholder="Suchen..." oninput="produkteAnzeigen()"> 
-
+    <select id="sortierungAuswahl" onchange="sortierungAendern()">
+        <option value="name">Nach Name sortieren</option>
+        <option value="bestand">Nach Bestand sortieren</option>
+        <option value="nachbestllen">Nachbestellen zuerst</option>
+    </select>
 
 
     <div id="produktListe"></div>
@@ -42,14 +46,39 @@
         ];
 
         let bearbeitungsIndex = null;
-
+        let sortierung = "name";
         
-
         function produkteAnzeigen() {
             let liste = document.getElementById("produktListe");
             let suchText = document.getElementById("sucheEingabe").value.toLowerCase();
 
             liste.innerHTML = "";
+
+            let angezeigteProdukte = [...produkte];
+
+
+            if (sortierung === "name")
+            {
+                angezeigteProdukte.sort(function(a, b)
+                {return a.name.localeCompare(b.name)});
+            }
+
+            if (sortierung === "bestand")
+            {
+                angezeigteProdukte.sort(function(a, b)
+                {return a.bestand - b.bestand});
+            }
+
+            if(sortierung === "nachbestellen")
+            {
+                angezeigteProdukte.sort(function(a, b)
+                {   let aMussNachbestelltWerden = a.bestand <= a.mindestbestand;
+                    let bMussNachbestelltWerden = b.bestand <= b.mindestbestand;
+                    return (bMussNachbestelltWerden - aMussNachbestelltWerden)
+                });
+            }
+
+
 
             for (let i = 0; i < produkte.length; i++) {
                 let produkt = produkte[i];
@@ -81,6 +110,15 @@
                 `;
             }
         }
+
+        function sortierungAendern()
+        {
+            sortierung = document.getElementById("sortierungAuswahl").value;
+            produkteAnzeigen();
+        }
+
+
+
 
         function produkteSpeichern()
         {
