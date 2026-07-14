@@ -20,8 +20,15 @@
     <select id="sortierungAuswahl" onchange="sortierungAendern()">
         <option value="name">Nach Name sortieren</option>
         <option value="bestand">Nach Bestand sortieren</option>
-        <option value="nachbestllen">Nachbestellen zuerst</option>
+        <option value="nachbestellen">Nachbestellen zuerst</option>
     </select>
+
+    <p id="übersicht"></p>
+
+    <label>
+        <input id="nurNachbestellen" type = "checkbox" onchange="produkteAnzeigen()"/>
+        Nur Nachbestellen anzeigen
+    </label>
 
 
     <div id="produktListe"></div>
@@ -49,8 +56,11 @@
         let sortierung = "name";
         
         function produkteAnzeigen() {
+            übersichtAktualisieren();
+
             let liste = document.getElementById("produktListe");
             let suchText = document.getElementById("sucheEingabe").value.toLowerCase();
+            let nurNachbestellen = document.getElementById("nurNachbestellen").checked;
 
             liste.innerHTML = "";
 
@@ -80,10 +90,17 @@
 
 
 
-            for (let i = 0; i < produkte.length; i++) {
-                let produkt = produkte[i];
+            for (let i = 0; i < angezeigteProdukte.length; i++) {
+                let produkt = angezeigteProdukte[i];
+
+                let originalIndex = produkte.indexOf(produkt);
 
                 if(!produkt.name.toLowerCase().includes(suchText))
+                {
+                    continue;
+                }
+
+                if(nurNachbestellen && produkt.bestand > produkt.mindestbestand)
                 {
                     continue;
                 }
@@ -101,15 +118,32 @@
                         <p>Mindestbestand: ${produkt.mindestbestand}</p>
                         <p style="color: red; font-weight: bold;">${status}</p>
 
-                        <button onclick="bestandErhoehen(${i})">+</button>
-                        <button onclick="bestandVerringern(${i})">-</button>
-                        <button onclick="produktEntfernen(${i})">Löschen</button>
-                        <button onclick="produktBearbeiten(${i})">Bearbeiten</button>
+                        <button onclick="bestandErhoehen(${originalIndex})">+</button>
+                        <button onclick="bestandVerringern(${originalIndex})">-</button>
+                        <button onclick="produktEntfernen(${originalIndex})">Löschen</button>
+                        <button onclick="produktBearbeiten(${originalIndex})">Bearbeiten</button>
                     </div>
                     <hr>
                 `;
             }
         }
+
+        function übersichtAktualisieren()
+        {
+            let nachbestellAnzahl = 0;
+
+            for (let i = 0; i < produkte.length; i++)
+            {
+                if (produkte[i].bestand <= produkte[i].mindestbestand)
+                {
+                    nachbestellAnzahl++;
+                }
+            }
+
+            document.getElementById("übersicht").textContent = "Produkte gesamt: " + produkte.length + " | Nachbestellen: " + nachbestellAnzahl;
+        }
+
+
 
         function sortierungAendern()
         {
