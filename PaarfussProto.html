@@ -1,31 +1,22 @@
-/*
-    
-    Inventur APP
-    Autor: Paarfuss
-    Datum: 2024-06-10
-
-*/
-
-
-
 <!DOCTYPE html> 
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <title>Inventur APP</title>
 </head>
-<body>                          // HTML Code
+<body>                          <!-- HTML Code -->
     <h1>Inventur APP</h1>
     <h2>Neues Produkt hinzufügen</h2>
-                                            // Formular zum Hinzufügen eines neuen Produkts
+                                            <!-- Formular zum Hinzufügen eines neuen Produkts -->
+    <input id="artikelnummerEingabe" placeholder="Artikelnummer"/>
     <input id="nameEingabe" placeholder="Produktname"/>
     <input id="bestandEingabe" placeholder="Bestand" type="number"/>
     <input id="mindestbestandEingabe" placeholder="Mindestbestand" type="number"/>
     <button id ="formularButton" onclick="produkthinzufügen()"> Produkt hinzufügen </button>
     <button onclick="formularZurücksetzen()">Abbrechen</button>
 
-    <h2>Produktliste</h2>                   // Überschrift für die Produktliste
-                                // Suchfeld und Sortierungsauswahl
+    <h2>Produktliste</h2>                    <!--Überschrift für die Produktliste-->
+                                <!--Suchfeld und Sortierungsauswahl-->
     <input id="sucheEingabe" placeholder="Suchen..." oninput="produkteAnzeigen()"> 
     <select id="sortierungAuswahl" onchange="sortierungAendern()">
         <option value="name">Nach Name sortieren</option>
@@ -33,63 +24,76 @@
         <option value="nachbestellen">Nachbestellen zuerst</option>
     </select>
 
-    <p id="übersicht"></p>              // Übersicht über die Gesamtanzahl der Produkte und die Anzahl der Produkte, die nachbestellt werden müssen
+    <p id="übersicht"></p>              
 
-    <label>             // Checkbox zum Filtern der Produktliste, um nur Produkte anzuzeigen, die nachbestellt werden müssen
+    <label>             <!-- Checkbox zum Filtern der Produktliste, um nur Produkte anzuzeigen, die nachbestellt werden müssen-->
         <input id="nurNachbestellen" type = "checkbox" onchange="produkteAnzeigen()"/>
         Nur Nachbestellen anzeigen
     </label>
 
 
-    <div id="produktListe"></div>               // Container für die Produktliste
+    <div id="produktListe"></div>               <!-- Container für die Produktliste -->
 
-    <script>                                 // JavaScript Code
-        let produkte = [                                // Array von Produkten
+    <script>                                 //JavaScript Code 
+        let produkte = standardProdukte();                 // Variable zum Speichern der Produkte
+
+        let bearbeitungsIndex = null;               // Variable zum Speichern des Index des Produkts, das gerade bearbeitet wird
+        let sortierung = "name";  // Variable zum Speichern der aktuellen Sortierung
+        
+        function standardProdukte()         // Funktion zum Erstellen der Standardprodukte
+        {
+            return[
+                                              
             {
+                artikelnummer: "FC-001",
                 name: "Fußcreme",
                 bestand: 5,
                 mindestbestand: 2
             },
             {
+                artikelnummer: "HS-001",
                 name: "Handschuhe",
                 bestand: 20,
                 mindestbestand: 10
             },
             {
+                artikelnummer: "DES-001",
                 name: "Desinfektionsmittel",
                 bestand: 3,
                 mindestbestand: 4
             }
-        ];
+        
+            ];
+        }
 
-        let bearbeitungsIndex = null;               // Variable zum Speichern des Index des Produkts, das gerade bearbeitet wird
-        let sortierung = "name";                    // Variable zum Speichern der aktuellen Sortierung
         
         function produkteAnzeigen() {                               // Funktion zum Anzeigen der Produkte
             übersichtAktualisieren();
 
-            let liste = document.getElementById("produktListe");
-            let suchText = document.getElementById("sucheEingabe").value.toLowerCase();
-            let nurNachbestellen = document.getElementById("nurNachbestellen").checked;
+            let liste = document.getElementById("produktListe");                        // Container für die Produktliste
+            let suchText = document.getElementById("sucheEingabe").value.toLowerCase();     // Suchtext aus dem Suchfeld
+            let nurNachbestellen = document.getElementById("nurNachbestellen").checked;          // Checkbox zum Filtern der Produktliste, um nur Produkte anzuzeigen, die nachbestellt werden müssen
 
-            liste.innerHTML = "";
+            liste.innerHTML = "";  // Leeren des Containers für die Produktliste
 
-            let angezeigteProdukte = [...produkte];
+            let angezeigteAnzahl = 0;       // Variable zum Zählen der angezeigten Produkte
+
+            let angezeigteProdukte = [...produkte];     // Kopieren des Arrays von Produkten, um die Sortierung und Filterung zu ermöglichen
 
 
-            if (sortierung === "name")
+            if (sortierung === "name")      // Sortieren der Produkte nach Name
             {
                 angezeigteProdukte.sort(function(a, b)
                 {return a.name.localeCompare(b.name)});
             }
 
-            if (sortierung === "bestand")
+            if (sortierung === "bestand")       // Sortieren der Produkte nach Bestand
             {
                 angezeigteProdukte.sort(function(a, b)
                 {return a.bestand - b.bestand});
             }
 
-            if(sortierung === "nachbestellen")
+            if(sortierung === "nachbestellen")          // Sortieren der Produkte nach Nachbestellen
             {
                 angezeigteProdukte.sort(function(a, b)
                 {   let aMussNachbestelltWerden = a.bestand <= a.mindestbestand;
@@ -100,7 +104,7 @@
 
 
 
-            for (let i = 0; i < angezeigteProdukte.length; i++) {
+            for (let i = 0; i < angezeigteProdukte.length; i++) {       // Schleife zum Durchlaufen der angezeigten Produkte
                 let produkt = angezeigteProdukte[i];
 
                 let originalIndex = produkte.indexOf(produkt);
@@ -121,14 +125,16 @@
                     status = "Nachbestellen";
                 }
 
-                liste.innerHTML += `                                    // HTML Code für die Anzeige der Produkte                                               
+                angezeigteAnzahl++;
+
+                liste.innerHTML += `                                                                              
                     <div>
                         <h2>${produkt.name}</h2>
                         <p>Bestand: ${produkt.bestand}</p>
                         <p>Mindestbestand: ${produkt.mindestbestand}</p>
                         <p style="color: red; font-weight: bold;">${status}</p>
-
-                        <button onclick="bestandErhoehen(${originalIndex})">+</button>
+                            
+                        <button onclick="bestandErhoehen(${originalIndex})">+</button> <!-- Buttons zum Erhöhen, Verringern, Löschen und Bearbeiten der Produkte -->
                         <button onclick="bestandVerringern(${originalIndex})">-</button>
                         <button onclick="produktEntfernen(${originalIndex})">Löschen</button>
                         <button onclick="produktBearbeiten(${originalIndex})">Bearbeiten</button>
@@ -136,6 +142,12 @@
                     <hr>
                 `;
             }
+
+            if (angezeigteAnzahl === 0) 
+            {
+                liste.innerHTML = "<p>Keine Produkte gefunden.</p>";
+            }
+
         }
 
         function übersichtAktualisieren()                                   // Funktion zum Aktualisieren der Übersicht
@@ -201,6 +213,15 @@
 
         function produktEntfernen(index)            // Funktion zum Entfernen eines Produkts
         {
+
+            let produkt = produkte[index];
+            let bestätigung = confirm("Möchten Sie das Produkt " + produkt.name + " wirklich löschen?");
+
+            if(!bestätigung)
+            {
+                return;
+            }
+
             produkte.splice(index, 1);
             produkteSpeichern();
             produkteAnzeigen();
