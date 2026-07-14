@@ -1,21 +1,31 @@
-<!DOCTYPE html>
+/*
+    
+    Inventur APP
+    Autor: Paarfuss
+    Datum: 2024-06-10
+
+*/
+
+
+
+<!DOCTYPE html> 
 <html lang="de">
 <head>
     <meta charset="UTF-8">
     <title>Inventur APP</title>
 </head>
-<body>
+<body>                          // HTML Code
     <h1>Inventur APP</h1>
     <h2>Neues Produkt hinzufügen</h2>
-
+                                            // Formular zum Hinzufügen eines neuen Produkts
     <input id="nameEingabe" placeholder="Produktname"/>
     <input id="bestandEingabe" placeholder="Bestand" type="number"/>
     <input id="mindestbestandEingabe" placeholder="Mindestbestand" type="number"/>
     <button id ="formularButton" onclick="produkthinzufügen()"> Produkt hinzufügen </button>
     <button onclick="formularZurücksetzen()">Abbrechen</button>
 
-    <h2>Produktliste</h2>
-
+    <h2>Produktliste</h2>                   // Überschrift für die Produktliste
+                                // Suchfeld und Sortierungsauswahl
     <input id="sucheEingabe" placeholder="Suchen..." oninput="produkteAnzeigen()"> 
     <select id="sortierungAuswahl" onchange="sortierungAendern()">
         <option value="name">Nach Name sortieren</option>
@@ -23,18 +33,18 @@
         <option value="nachbestellen">Nachbestellen zuerst</option>
     </select>
 
-    <p id="übersicht"></p>
+    <p id="übersicht"></p>              // Übersicht über die Gesamtanzahl der Produkte und die Anzahl der Produkte, die nachbestellt werden müssen
 
-    <label>
+    <label>             // Checkbox zum Filtern der Produktliste, um nur Produkte anzuzeigen, die nachbestellt werden müssen
         <input id="nurNachbestellen" type = "checkbox" onchange="produkteAnzeigen()"/>
         Nur Nachbestellen anzeigen
     </label>
 
 
-    <div id="produktListe"></div>
+    <div id="produktListe"></div>               // Container für die Produktliste
 
-    <script>
-        let produkte = [
+    <script>                                 // JavaScript Code
+        let produkte = [                                // Array von Produkten
             {
                 name: "Fußcreme",
                 bestand: 5,
@@ -52,10 +62,10 @@
             }
         ];
 
-        let bearbeitungsIndex = null;
-        let sortierung = "name";
+        let bearbeitungsIndex = null;               // Variable zum Speichern des Index des Produkts, das gerade bearbeitet wird
+        let sortierung = "name";                    // Variable zum Speichern der aktuellen Sortierung
         
-        function produkteAnzeigen() {
+        function produkteAnzeigen() {                               // Funktion zum Anzeigen der Produkte
             übersichtAktualisieren();
 
             let liste = document.getElementById("produktListe");
@@ -111,7 +121,7 @@
                     status = "Nachbestellen";
                 }
 
-                liste.innerHTML += `
+                liste.innerHTML += `                                    // HTML Code für die Anzeige der Produkte                                               
                     <div>
                         <h2>${produkt.name}</h2>
                         <p>Bestand: ${produkt.bestand}</p>
@@ -128,7 +138,7 @@
             }
         }
 
-        function übersichtAktualisieren()
+        function übersichtAktualisieren()                                   // Funktion zum Aktualisieren der Übersicht
         {
             let nachbestellAnzahl = 0;
 
@@ -145,7 +155,7 @@
 
 
 
-        function sortierungAendern()
+        function sortierungAendern()                // Funktion zum Ändern der Sortierung
         {
             sortierung = document.getElementById("sortierungAuswahl").value;
             produkteAnzeigen();
@@ -154,12 +164,12 @@
 
 
 
-        function produkteSpeichern()
+        function produkteSpeichern()                // Funktion zum Speichern der Produkte im Local Storage
         {
             localStorage.setItem("produkte", JSON.stringify(produkte));
         }
 
-        function produkteLaden()
+        function produkteLaden()                // Funktion zum Laden der Produkte aus dem Local Storage
         {
             let gespeicherteProdukte = localStorage.getItem("produkte");
             if (gespeicherteProdukte !== null)
@@ -170,13 +180,13 @@
 
 
 
-        function bestandErhoehen(index) {
+        function bestandErhoehen(index) {                   // Funktion zum Erhöhen des Bestands eines Produkts
             produkte[index].bestand = produkte[index].bestand + 1;
             produkteSpeichern();
             produkteAnzeigen();
         }
 
-        function bestandVerringern(index) {
+        function bestandVerringern(index) {                 // Funktion zum Verringern des Bestands eines Produkts
 
             if (produkte[index].bestand <= 0)
             {
@@ -189,14 +199,14 @@
             produkteAnzeigen();
         }
 
-        function produktEntfernen(index)
+        function produktEntfernen(index)            // Funktion zum Entfernen eines Produkts
         {
             produkte.splice(index, 1);
             produkteSpeichern();
             produkteAnzeigen();
         }
 
-        function produktBearbeiten(index)
+        function produktBearbeiten(index)               // Funktion zum Bearbeiten eines Produkts
         {
             let produkt = produkte[index];
             document.getElementById("nameEingabe").value = produkt.name;
@@ -210,7 +220,7 @@
         }
         
 
-        function produkthinzufügen()
+        function produkthinzufügen()            // Funktion zum Hinzufügen eines neuen Produkts oder Speichern der Änderungen eines bestehenden Produkts
         {
             let name = document.getElementById("nameEingabe").value.trim();
             let bestandText = document.getElementById("bestandEingabe").value;
@@ -257,7 +267,7 @@
            
         }
 
-        function formularZurücksetzen()
+        function formularZurücksetzen()             // Funktion zum Zurücksetzen des Formulars
         {
             document.getElementById("nameEingabe").value = "";
             document.getElementById("bestandEingabe").value = "";
