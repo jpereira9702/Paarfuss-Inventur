@@ -9,6 +9,7 @@
     <h2>Neues Produkt hinzufügen</h2>
                                             <!-- Formular zum Hinzufügen eines neuen Produkts -->
     <input id="artikelnummerEingabe" placeholder="Artikelnummer"/>
+    <input id="barcodeEingabe" placeholder="Barcode"/>
     <input id="nameEingabe" placeholder="Produktname"/>
     <input id="bestandEingabe" placeholder="Bestand" type="number"/>
     <input id="mindestbestandEingabe" placeholder="Mindestbestand" type="number"/>
@@ -46,18 +47,21 @@
                                               
             {
                 artikelnummer: "FC-001",
+                barcode: "",
                 name: "Fußcreme",
                 bestand: 5,
                 mindestbestand: 2
             },
             {
                 artikelnummer: "HS-001",
+                barcode: "",
                 name: "Handschuhe",
                 bestand: 20,
                 mindestbestand: 10
             },
             {
                 artikelnummer: "DES-001",
+                barcode: "",
                 name: "Desinfektionsmittel",
                 bestand: 3,
                 mindestbestand: 4
@@ -130,6 +134,8 @@
                 liste.innerHTML += `                                                                              
                     <div>
                         <h2>${produkt.name}</h2>
+                        <p>Artikelnummer: ${produkt.artikelnummer}</p>
+                        <p>Barcode: ${produkt.barcode}</p>
                         <p>Bestand: ${produkt.bestand}</p>
                         <p>Mindestbestand: ${produkt.mindestbestand}</p>
                         <p style="color: red; font-weight: bold;">${status}</p>
@@ -187,6 +193,19 @@
             if (gespeicherteProdukte !== null)
             {
                 produkte = JSON.parse(gespeicherteProdukte);
+
+                for (let i = 0; i < produkte.length; i++)
+                {
+                    if (produkte[i].artikelnummer === undefined)
+                    {
+                        produkte[i].artikelnummer = "ALT-" + (i + 1);
+                    }
+                    if (produkte[i].barcode === undefined)
+                    {
+                        produkte[i].barcode = "";
+                    }
+                }
+                produkteSpeichern();
             }
         }
 
@@ -230,6 +249,8 @@
         function produktBearbeiten(index)               // Funktion zum Bearbeiten eines Produkts
         {
             let produkt = produkte[index];
+            document.getElementById("artikelnummerEingabe").value = produkt.artikelnummer;
+            document.getElementById("barcodeEingabe").value = produkt.barcode;
             document.getElementById("nameEingabe").value = produkt.name;
             document.getElementById("bestandEingabe").value = produkt.bestand;
             document.getElementById("mindestbestandEingabe").value = produkt.mindestbestand;
@@ -243,15 +264,48 @@
 
         function produkthinzufügen()            // Funktion zum Hinzufügen eines neuen Produkts oder Speichern der Änderungen eines bestehenden Produkts
         {
+            let artikelnummer = document.getElementById("artikelnummerEingabe").value.trim();
+            let barcode = document.getElementById("barcodeEingabe").value.trim();
             let name = document.getElementById("nameEingabe").value.trim();
             let bestandText = document.getElementById("bestandEingabe").value;
             let mindestbestandText = document.getElementById("mindestbestandEingabe").value;
 
-            if(name === "" || bestandText === "" || mindestbestandText === "")
+            if(artikelnummer === "" || name === "" ||  bestandText === "" || mindestbestandText === "")
             {
                 alert ("Bitte alle Felder ausfüllen!");
                 return;
             }
+
+            let artikelnummerVergleich = artikelnummer.toLowerCase();
+            let barcodeVergleich = barcode.toLowerCase();
+
+            for (let i = 0; i < produkte.length; i++)
+            {
+                if (i === bearbeitungsIndex)
+                {
+                    continue;
+                }
+
+                let vorhandeneArtikelnummer = produkte[i].artikelnummer.trim().toLowerCase();
+                let vorhandenerBarcode = (produkte[i].barcode || "").trim().toLowerCase();
+
+                if(vorhandeneArtikelnummer === artikelnummerVergleich)
+                {
+                    alert("Die Artikelnummer ist bereits vergeben!");
+                    return;
+                }
+
+                if (barcode !== "" && vorhandenerBarcode === barcodeVergleich)
+                {
+                    alert ("Dieser Barcode existiert bereits!")
+                    return;
+                    
+                }
+
+            }
+
+
+
 
             let bestand = Number(bestandText);
             let mindestbestand = Number(mindestbestandText);
@@ -264,6 +318,8 @@
 
 
             let produktDaten = {
+                artikelnummer: artikelnummer,
+                barcode: barcode,
                 name: name,
                 bestand: bestand,
                 mindestbestand: mindestbestand
@@ -290,6 +346,8 @@
 
         function formularZurücksetzen()             // Funktion zum Zurücksetzen des Formulars
         {
+            document.getElementById("artikelnummerEingabe").value = "";
+            document.getElementById("barcodeEingabe").value = "";
             document.getElementById("nameEingabe").value = "";
             document.getElementById("bestandEingabe").value = "";
             document.getElementById("mindestbestandEingabe").value = "";
