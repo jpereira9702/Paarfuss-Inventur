@@ -2,7 +2,8 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <title>Inventur APP</title>
+    <meta name="viewport" content="width=device-width, initial-scale = 1.0">
+    <title>Paarfuss Inventur</title>
 </head>
 <body>                          <!-- HTML Code -->
     <h1>Inventur APP</h1>
@@ -18,7 +19,12 @@
 
     <h2>Produktliste</h2>                    <!--Überschrift für die Produktliste-->
                                 <!--Suchfeld und Sortierungsauswahl-->
-    <input id="sucheEingabe" placeholder="Suchen..." oninput="produkteAnzeigen()"> 
+    <input id="sucheEingabe" placeholder="Name, Artikelnummer oder Barcode" oninput="produkteAnzeigen()"> 
+    <button id="scannerStartButton" onclick="scannerStarten()">Barcode Scannen</button>
+    <button id="scannerStopButton" onclick="scannerStoppen()" hidden>Scanner Schließen</button>
+    <p id="scannerMeldung"></p>
+    <video id="scannerVideo" playsinline hidden></video>
+
     <select id="sortierungAuswahl" onchange="sortierungAendern()">
         <option value="name">Nach Name sortieren</option>
         <option value="bestand">Nach Bestand sortieren</option>
@@ -35,11 +41,18 @@
 
     <div id="produktListe"></div>               <!-- Container für die Produktliste -->
 
+    <script src="https://unpkg.com/@zxing/browser@0.2.0/umd/zxing-browser.min.js"></script>  
+
     <script>                                 //JavaScript Code 
         let produkte = standardProdukte();                 // Variable zum Speichern der Produkte
 
         let bearbeitungsIndex = null;               // Variable zum Speichern des Index des Produkts, das gerade bearbeitet wird
         let sortierung = "name";  // Variable zum Speichern der aktuellen Sortierung
+
+        let scannerSteuerung = null;
+        let scannerLeser = null;
+
+
         
         function standardProdukte()         // Funktion zum Erstellen der Standardprodukte
         {
@@ -70,8 +83,191 @@
             ];
         }
 
+        async function kameraOptimieren(video)
+    {
+        if (!video.srcObject)
+        {
+            return;
+        }
+
+        let kameraSpuren = video.srcObject.getVideoTracks();
+
+        if (kameraSpuren.length === 0)
+        {
+            return;
+        }
+
+        let kameraSpur = kameraSpuren[0];
+
+        if (typeof kameraSpur.getCapabilities !== "function")
+        {
+             return;
+        }
+
+        let faehigkeiten = kameraSpur.getCapabilities();
+        let einstellungen = {};
+
+        if (
+            Array.isArray(faehigkeiten.focusMode) &&
+            faehigkeiten.focusMode.includes("continuous")
+        )
+        {
+            einstellungen.focusMode = "continuous";
+        }
+
+        if (Object.keys(einstellungen).length > 0)
+        {
+            try
+            {
+                await kameraSpur.applyConstraints({
+                    advanced: [einstellungen]
+                });
+            }
+            catch (fehler)
+            {
+                console.log("Kameraoptimierung nicht unterstützt.", fehler);
+            }
+        }
+    }
+
+        async function scannerStarten()
+        {
+            if (scannerSteuerung !== null)
+            {
+                return;
+            }
+
+            let video = document.getElementById("scannerVideo");
+            let meldung = document.getElementById("scannerMeldung");
+
+            if (typeof ZXingBrowser === "undefined")
+            {
+                meldung.textContent = "Scanner konnte nicht geladen werden.";
+                return;
+            }
+
+            video.hidden = false;
+            document.getElementById("scannerStartButton").hidden = true;
+            document.getElementById("scannerStopButton").hidden = false;
+
+            meldung.textContent = "Kamera wird gestartet...";
+
+
+            scannerLeser = new ZXingBrowser.BrowserMultiFormatOneDReader();
+
+
+            try
+            {
+                scannerSteuerung = await scannerLeser.decodeFromConstraints(
+                {
+                    video: {
+                        facingMode: {
+                        ideal: "environment"
+                },
+                        width: {
+                        ideal: 1920
+                },
+                        height: {
+                        ideal: 1080
+                },
+                        frameRate: {
+                        ideal: 30
+                }
+            }
+                },
+                video,
+                function(ergebnis)
+                {
+                    if(ergebnis)
+                    {
+                        let barcode = ergebnis.getText();
+
+                        scannerStoppen();
+                        scanVerarbeiten(barcode);
+                    }
+                }
+              );
+              await kameraOptimieren(video);
+              meldung.textContent = "Barcode vor die Kamera halten.";
+            }
+            
+            catch (fehler)
+              {
+                scannerStoppen();
+                meldung.textContent = "Die Kamera konnte nicht gestartet werden.";
+              }
+
+        }
+
+        function scanVerarbeiten(barcode)
+        {
+            let produktIndex = -1;
+
+            for (let i = 0; i < produkte.length; i++)
+            {
+                let vorhandenerBarcode = (produkte[i].barcode || "").trim();
+
+                if (vorhandenerBarcode === barcode)
+                {
+                    produktIndex = i;
+                    break;
+                }
+            }
+            if (produktIndex !== -1)
+            {
+                document.getElementById("sucheEingabe").value = barcode;
+                document.getElementById("nurNachbestellen").checked = false;
+
+                bestandErhoehen(produktIndex);
+
+                document.getElementById("scannerMeldung").textContent = produkte[produktIndex].name + ": Bestand wurde auf " + produkte[produktIndex].bestand + " erhöht.";
+
+                return;
+            }
+
+            formularZurücksetzen();
+
+            document.getElementById("barcodeEingabe").value = barcode;
+            document.getElementById("bestandEingabe").value = 1;
+            document.getElementById("artikelnummerEingabe").focus();
+
+            document.getElementById("scannerMeldung").textContent = "Neuer Barcode erkannt. Bitte Produktdaten ergänzen.";
+
+        }
+
+        function scannerStoppen()
+        {
+            if (scannerSteuerung !== null)
+            {
+                scannerSteuerung.stop();
+                scannerSteuerung = null;
+            }
+
+            let video = document.getElementById("scannerVideo");
+
+            if (video.srcObject)
+            {
+                let spuren = video.srcObject.getTracks();
+
+                for (let i = 0; i < spuren.length; i++)
+                {
+                    spuren[i].stop();
+                }
+
+                video.srcObject = null;
+            }
+
+            video.hidden = true;
+            document.getElementById("scannerStartButton").hidden = false;
+            document.getElementById("scannerStopButton").hidden = true;
+            document.getElementById("scannerMeldung").textContent = "";
+        }
+
+
         
-        function produkteAnzeigen() {                               // Funktion zum Anzeigen der Produkte
+        function produkteAnzeigen() 
+        {
+                                           // Funktion zum Anzeigen der Produkte
             übersichtAktualisieren();
 
             let liste = document.getElementById("produktListe");                        // Container für die Produktliste
@@ -113,7 +309,13 @@
 
                 let originalIndex = produkte.indexOf(produkt);
 
-                if(!produkt.name.toLowerCase().includes(suchText))
+                let namePasst = produkt.name.toLowerCase().includes(suchText);
+
+                let artikelnummerPasst = produkt.artikelnummer.toLowerCase().includes(suchText);
+
+                let barcodePasst = produkt.barcode.toLowerCase().includes(suchText);
+
+                if (!namePasst && !artikelnummerPasst && !barcodePasst)
                 {
                     continue;
                 }
@@ -155,6 +357,8 @@
             }
 
         }
+
+
 
         function übersichtAktualisieren()                                   // Funktion zum Aktualisieren der Übersicht
         {
