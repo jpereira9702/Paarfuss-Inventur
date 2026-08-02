@@ -263,6 +263,7 @@
                     if (blob === null)
                     {
                         reject (new Error("Der Bildausschnitt konnte nicht erstell werden."));
+                        return;
                     }
 
                     let datei = new File (
@@ -338,7 +339,9 @@
             {
                 console.error("WASM-Fotoerkennung fehlgeschalgen:", fehler);
 
-                meldung.textContent = "Fotoerkennung fehlgeschlagen: " + (fehler.message || fehler);
+                meldung.textContent = "Fotoerkennung fehlgeschlagen. Bitte den barcode manuell eingeben.";
+
+                document.getElementById("barcodeManuellButton").hidden = false;
             }
         }
 
@@ -351,7 +354,7 @@
                 block: "center"
             });
 
-            barcode.Eingabe.focus();
+            barcodeEingabe.focus();
         }
 
         function barcodeFotoZurücksetzen()
