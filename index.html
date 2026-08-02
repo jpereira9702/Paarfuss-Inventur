@@ -73,6 +73,8 @@
 
     <p id= "fotoMeldung"></p>
 
+    <button id = "barcodeManuellButton" onclick = "barcodeManuellEingeben()" hidden> Barcode manuell eingeben </button>
+
     <div id="barcodeFotoBereich" class="barcode-foto-bereich" hidden>
 
     <img
@@ -340,6 +342,18 @@
             }
         }
 
+        function barcodeManuellEingeben()
+        {
+            let barcodeEingabe = document.getElementById("barcodeEingabe");
+            
+            barcodeEingabe.scrollIntoView({
+                behavior: "smooth",
+                block: "center"
+            });
+
+            barcode.Eingabe.focus();
+        }
+
         function barcodeFotoZurücksetzen()
         {
             let bereich = document.getElementById("barcodeFotoBereich");
@@ -349,6 +363,7 @@
             vorschau.removeAttribute("src");
 
             document.getElementById("barcodeFotoEingabe").value = "";
+            document.getElementById("barcodeManuellButton").hidden = true;
         }
 
 
@@ -432,7 +447,8 @@
                 }
             }
 
-            meldung.textContent = "Nicht eindeutig erkannt. Versuche: " + erkannteVersuche.join(" | ");
+            meldung.textContent = "Barcode nicht erkannt. Bitte erneut fotografieren oder manuell eingeben";
+            document.getElementById("barcodeManuellButton").hidden = false;
 
             }
 
@@ -440,7 +456,9 @@
             {
                 console.error("Die Ziffererkennung ist fehlgeschlagen", fehler);
 
-                meldung.textContent = "Ziffererkennung fehlgeschlagen: " + (fehler.message || fehler);
+                meldung.textContent = "Ziffererkennung fehlgeschlagen. Bitte den Barcode manuell eingeben.";
+
+                document.getElementById("barcodeManuellButton").hidden = false;
             }
 
         }
