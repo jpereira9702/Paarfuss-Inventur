@@ -6,6 +6,7 @@
     <title>Paarfuss Inventur</title>
 
     <style>
+        /* Legt das Foto als Bezugspunkt für den darüberliegenden Scanrahmen fest. */
         .barcode-foto-bereich
         {
             position: relative;
@@ -24,6 +25,7 @@
             height: auto;
         }
 
+        /* Markiert den Bildbereich, der für den ersten Erkennungsversuch ausgeschnitten wird. */
         .barcode-scanrahmen
         {
             position: absolute;
@@ -51,6 +53,7 @@
     <button id ="formularButton" onclick="produkthinzufügen()"> Produkt hinzufügen </button>
     <button onclick="formularZurücksetzen()">Abbrechen</button>
 
+    <!-- Steuert eine getrennte Zählsitzung, ohne den Lagerbestand sofort zu verändern. -->
     <h2>Inventur</h2>
 
     <button id = "inventurStartButton" onclick= "inventurStarten()"> Inventur Starten </button>
@@ -90,6 +93,7 @@
     <div class="barcode-scanrahmen"></div>
 
     </div>
+    <!-- Filter und Sortierung beeinflussen nur die Anzeige, nicht die gespeicherten Produkte. -->
     <select id="sortierungAuswahl" onchange="sortierungAendern()">
         <option value="name">Nach Name sortieren</option>
         <option value="bestand">Nach Bestand sortieren</option>
@@ -119,6 +123,7 @@
         let bearbeitungsIndex = null;
         let sortierung = "name";
 
+        // Hält den Zustand einer laufenden Inventur getrennt vom echten Lagerbestand.
         let inventur = {
             aktiv: false,
             gestartetAm: null,
@@ -131,6 +136,7 @@
         let scannerLeser = null;
         let ocrWorker = null;
 
+        // Liefert Testprodukte, wenn im Browser noch keine eigenen Produkte gespeichert sind.
         function standardProdukte()
         {
             return[
@@ -208,6 +214,7 @@
         }
     }
 
+        // Zeigt das aufgenommene Foto an und startet die Verarbeitung nach dem Laden.
         function barcodeFotoAnzeigen(eingabe)
         {
             if (eingabe.files.length === 0)
@@ -235,12 +242,14 @@
             document.getElementById("fotoMeldung").textContent = "Foto aufgenommen. Ziffern werden gelesen...";
         }
 
+        // Schneidet den roten Scanbereich aus dem Originalbild aus und vergrößert ihn zweifach.
         function barcodeAusschnittErstellen(bild)
         {
             let canvas = document.createElement("canvas");
             let context = canvas.getContext("2d");
 
 
+            // Die Prozentwerte entsprechen exakt Position und Größe des CSS-Scanrahmens.
             let ausschnittX = Math.round(bild.naturalWidth * 0.05);
             let ausschnittY = Math.round(bild.naturalHeight * 0.40);
             let ausschnittBreite = Math.round(bild.naturalWidth * 0.90);
@@ -269,6 +278,7 @@
                 canvas.height
             );
 
+            // canvas.toBlob arbeitet asynchron; die Promise liefert anschließend eine Bilddatei.
             return new Promise(function(resolve, reject)
             {
                 canvas.toBlob(function(blob)
@@ -291,10 +301,12 @@
         }
 
 
+        // Prüft zuerst den vergrößerten Ausschnitt, danach das ganze Foto und zuletzt die Ziffern.
         async function barcodeFotoVerarbeiten(datei, vorschau)
         {
             let meldung = document.getElementById("fotoMeldung");
 
+            // Begrenzt ZXing auf unterstützte Strichcodes und aktiviert gründlichere Suchvarianten.
             let optionen = {
                 formats: [
                     "EAN13",
@@ -320,6 +332,7 @@
                     optionen
                 );
 
+                // Ohne Treffer im Rahmen folgt ein zweiter Versuch mit dem vollständigen Foto.
                 if (ergebnisse.length === 0)
                 {
                     meldung.textContent = "Barcode wird im vollständigen Foto gesucht..."
@@ -329,6 +342,7 @@
                         optionen
                     );
                 }
+                // OCR liest als letzte kostenlose Rückfallebene die aufgedruckten Barcode-Ziffern.
                 if (ergebnisse.length === 0)
                 {
                     meldung.textContent = "Barcode nicht direkt erkannt. Ziffern werden gelesen..."
@@ -358,6 +372,7 @@
             }
         }
 
+        // Bringt den Benutzer nach einem fehlgeschlagenen Scan direkt zum Barcodefeld.
         function barcodeManuellEingeben()
         {
             let barcodeEingabe = document.getElementById("barcodeEingabe");
@@ -370,6 +385,7 @@
             barcodeEingabe.focus();
         }
 
+        // Entfernt Foto, Scanrahmen und manuellen Rückweg nach einer erfolgreichen Verarbeitung.
         function barcodeFotoZurücksetzen()
         {
             let bereich = document.getElementById("barcodeFotoBereich");
@@ -384,11 +400,13 @@
 
 
 
+        // Berechnet die Prüfziffer eines GTIN-Barcodes und schützt vor falschen OCR-Ergebnissen.
         function prüfzifferIstGültig (barcode)
         {
             let summe = 0;
             let position = 0;
 
+            // Von rechts werden die Nutzzeichen abwechselnd mit 3 und 1 gewichtet.
             for (let i = barcode.length - 2; i >= 0; i--)
             {
                 let gewicht = position % 2 === 0 ? 3 : 1;
@@ -405,6 +423,7 @@
 
 
 
+        // Liest mögliche Barcode-Ziffern mit Tesseract aus mehreren horizontalen Bildstreifen.
         async function barcodeZiffernLesen(bild) 
         {
             let meldung = document.getElementById("fotoMeldung");
@@ -417,6 +436,7 @@
 
             try
             {
+                // Der Worker wird nur einmal geladen und danach für weitere Fotos wiederverwendet.
                 if (ocrWorker === null)
                 {
                     meldung.textContent = "Ziffererkennung wird vorbereitet...";
@@ -435,6 +455,7 @@
 
             let erkannteVersuche = [];
 
+            // Mehrere Höhen gleichen unterschiedlich positionierte Barcodes im Foto aus.
             for (let i = 0; i < startPositionen.length; i++)
             {
                 meldung.textContent = "Bildbereich " + (i + 1) + " von " + startPositionen.length + " wird gelesen...";
@@ -455,6 +476,7 @@
 
                 erkannteVersuche.push(ziffern || "nichts");
 
+                // Nur übliche GTIN-Längen mit korrekter Prüfziffer gelten als sicherer Treffer.
                 if (erlaubteLängen.includes(ziffern.length) && prüfzifferIstGültig(ziffern))
                 {
                     scanVerarbeiten(ziffern, meldung);
@@ -481,8 +503,10 @@
 
 
 
+        // Öffnet die Rückkamera und liest fortlaufend flache 1D-Barcodes aus dem Videobild.
         async function scannerStarten()
         {
+            // Verhindert, dass mehrere Kamera-Scanner gleichzeitig gestartet werden.
             if (scannerSteuerung !== null)
             {
                 return;
@@ -551,6 +575,7 @@
 
         }
 
+        // Erstellt eine Momentaufnahme aller Sollbestände für eine neue Inventursitzung.
         function inventurStarten()
         {
             if (produkte.length === 0)
@@ -570,6 +595,7 @@
             inventur.positionen = [];
             inventur.unbekannteBarcodes = [];
 
+            // Jede Position beginnt bei null; erwartet bleibt während der Zählung unverändert.
             for (let i = 0; i < produkte.length; i++)
             {
                 let produkt = produkte[i];
@@ -586,6 +612,7 @@
             inventurAnzeigeAktualisieren();
         }
 
+        // Verwirft eine laufende Inventur nach Bestätigung, ohne Lagerbestände zu ändern.
         function inventurAbbrechen()
         {
             let bestätigung = confirm("Möchten sie die laufende Inventur wirklich abbrechen?");
@@ -603,6 +630,7 @@
             inventurAnzeigeAktualisieren();
         }
 
+        // Passt Buttons und Statustext an den aktuellen Inventurzustand an.
         function inventurAnzeigeAktualisieren()
         {
             let startButton = document.getElementById("inventurStartButton");
@@ -625,6 +653,7 @@
             }
         }
 
+        // Ordnet einen Scan einem Produkt zu oder bereitet ein neues Produktformular vor.
         function scanVerarbeiten(barcode, meldung)
         {
             let produktIndex = -1;
@@ -663,6 +692,7 @@
 
         }
 
+        // Stoppt Decoder und Kameraspuren und stellt die ursprünglichen Bedienelemente wieder her.
         function scannerStoppen()
         {
             if (scannerSteuerung !== null)
@@ -694,6 +724,7 @@
 
 
         
+        // Filtert, sortiert und erzeugt die sichtbare Produktliste aus den gespeicherten Daten.
         function produkteAnzeigen() 
         {
             übersichtAktualisieren();
@@ -739,6 +770,7 @@
                 // Buttons benötigen den Index im Originalarray, nicht den der sortierten Kopie.
                 let originalIndex = produkte.indexOf(produkt);
 
+                // Derselbe Suchtext wird mit Name, Artikelnummer und Barcode verglichen.
                 let namePasst = produkt.name.toLowerCase().includes(suchText);
 
                 let artikelnummerPasst = produkt.artikelnummer.toLowerCase().includes(suchText);
@@ -763,6 +795,7 @@
 
                 angezeigteAnzahl++;
 
+                // Erst nach allen Filtern wird das Produkt als HTML an die Liste angehängt.
                 liste.innerHTML += `                                                                              
                     <div>
                         <h2>${produkt.name}</h2>
@@ -790,6 +823,7 @@
 
 
 
+        // Berechnet die Kennzahlen oberhalb der Produktliste neu.
         function übersichtAktualisieren()
         {
             let nachbestellAnzahl = 0;
@@ -807,6 +841,7 @@
 
 
 
+        // Übernimmt die gewählte Sortierung und zeichnet die Produktliste erneut.
         function sortierungAendern()
         {
             sortierung = document.getElementById("sortierungAuswahl").value;
@@ -816,11 +851,13 @@
 
 
 
+        // Speichert die vollständige Produktliste dauerhaft im aktuellen Browser.
         function produkteSpeichern()
         {
             localStorage.setItem("produkte", JSON.stringify(produkte));
         }
 
+        // Lädt vorhandene Browserdaten und ergänzt Felder aus älteren Datenständen.
         function produkteLaden()
         {
             let gespeicherteProdukte = localStorage.getItem("produkte");
@@ -846,12 +883,14 @@
 
 
 
+        // Erhöht den Lagerbestand des ausgewählten Produkts und speichert die Änderung.
         function bestandErhoehen(index) {
             produkte[index].bestand = produkte[index].bestand + 1;
             produkteSpeichern();
             produkteAnzeigen();
         }
 
+        // Verringert den Lagerbestand, verhindert dabei aber negative Werte.
         function bestandVerringern(index) {
 
             if (produkte[index].bestand <= 0)
@@ -865,6 +904,7 @@
             produkteAnzeigen();
         }
 
+        // Löscht ein Produkt erst nach einer Sicherheitsabfrage endgültig aus der Liste.
         function produktEntfernen(index)
         {
 
@@ -881,6 +921,7 @@
             produkteAnzeigen();
         }
 
+        // Überträgt ein Produkt in das gemeinsame Formular und aktiviert den Bearbeitungsmodus.
         function produktBearbeiten(index)
         {
             let produkt = produkte[index];
@@ -897,6 +938,7 @@
         }
         
 
+        // Validiert Formulardaten und legt abhängig vom Modus ein Produkt an oder aktualisiert es.
         function produkthinzufügen()
         {
             let artikelnummer = document.getElementById("artikelnummerEingabe").value.trim();
@@ -911,6 +953,7 @@
                 return;
             }
 
+            // Kleinschreibung macht die Prüfung auf doppelte Kennungen unabhängig von Groß-/Kleinschreibung.
             let artikelnummerVergleich = artikelnummer.toLowerCase();
             let barcodeVergleich = barcode.toLowerCase();
 
@@ -944,6 +987,7 @@
 
 
 
+            // Eingabefelder liefern Text; für Bestandsberechnungen werden echte Zahlen benötigt.
             let bestand = Number(bestandText);
             let mindestbestand = Number(mindestbestandText);
 
@@ -982,6 +1026,7 @@
            
         }
 
+        // Leert das Formular und wechselt zurück vom Bearbeiten zum Hinzufügen.
         function formularZurücksetzen()
         {
             document.getElementById("artikelnummerEingabe").value = "";
