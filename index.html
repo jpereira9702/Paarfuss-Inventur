@@ -578,7 +578,7 @@
                     artikelnummer: produkt.artikelnummer,
                     barcode: produkt.barcode,
                     name: produkt.name,
-                    erwartet: produkt,bestätigung,
+                    erwartet: produkt.bestand,
                     gezählt: 0
                 });
             }
@@ -616,7 +616,7 @@
 
             if (inventur.aktiv)
             {
-                meldung.textContent = "Inventur läuft. Produkte: " + invetur.positionen.length + " | Gezählt: 0";
+                meldung.textContent = "Inventur läuft. Produkte: " + inventur.positionen.length + " | Gezählt: 0";
             }
 
             else
