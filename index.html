@@ -119,6 +119,13 @@
         let bearbeitungsIndex = null;
         let sortierung = "name";
 
+        let inventur = {
+            aktiv: false,
+            gestartetAm: null,
+            positionen: [],
+            unbekannteBarcodes: []
+        };
+
         // Laufende Kamera- und OCR-Instanzen werden zentral verwaltet.
         let scannerSteuerung = null; 
         let scannerLeser = null;
@@ -544,6 +551,80 @@
 
         }
 
+        function inventurStarten()
+        {
+            if (produkte.length === 0)
+            {
+                alert ("Es sind keine Produkte für die Inventur vorhanden.");
+                return;
+            }
+            let bestätigung = confirm ("Möchten sie eine neue Inventur starten?");
+
+            if (!bestätigung)
+            {
+                return;
+            }
+
+            inventur.aktiv = true;
+            inventur.gestartetAm = new Date().toISOString();
+            inventur.positionen = [];
+            inventur.unbekannteBarcodes = [];
+
+            for (let i = 0; i < produkte.length; i++)
+            {
+                let produkt = produkte[i];
+
+                inventur.positionen.push({
+                    artikelnummer: produkt.artikelnummer,
+                    barcode: produkt.barcode,
+                    name: produkt.name,
+                    erwartet: produkt,bestätigung,
+                    gezählt: 0
+                });
+            }
+
+            inventurAnzeigeAktualisieren();
+        }
+
+        function inventurAbbrechen()
+        {
+            let bestätigung = confirm("Möchten sie die laufende Inventur wirklich abbrechen?");
+
+            if (!bestätigung)
+            {
+                return;
+            }
+
+            inventur.aktiv = false;
+            inventur.gestartetAm = null;
+            inventur.positionen = [];
+            inventur.unbekannteBarcodes = [];
+
+            inventurAnzeigeAktualisieren();
+        }
+
+        function inventurAnzeigeAktualisieren()
+        {
+            let startButton = document.getElementById("inventurStartButton");
+
+            let abbruchButton = document.getElementById("inventurAbbruchButton");
+
+            let meldung = document.getElementById("inventurMeldung");
+
+            startButton.hidden = inventur.aktiv;
+            abbruchButton.hidden = !inventur.aktiv;
+
+            if (inventur.aktiv)
+            {
+                meldung.textContent = "Inventur läuft. Produkte: " + invetur.positionen.length + " | Gezählt: 0";
+            }
+
+            else
+            {
+                meldung.textContent = "Keine Inventur aktiv";
+            }
+        }
+
         function scanVerarbeiten(barcode, meldung)
         {
             let produktIndex = -1;
@@ -919,6 +1000,7 @@
         // Gespeicherte Daten müssen vor der ersten Anzeige geladen werden.
         produkteLaden();
         produkteAnzeigen();
+        inventurAnzeigeAktualisieren();
     </script>
 </body>
 </html>
