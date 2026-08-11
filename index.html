@@ -40,82 +40,122 @@
     </style>
 
 </head>
-<body>
-    <h1>Paarfuss Lager</h1>
-    <h2>Neues Produkt hinzufügen</h2>
+   <body>
+    <header>
+        <h1>Paarfuss Lager</h1>
+    </header>
 
-    <!-- Dieses Formular wird sowohl zum Hinzufügen als auch zum Bearbeiten verwendet. -->
-    <input id="artikelnummerEingabe" placeholder="Artikelnummer"/>
-    <input id="barcodeEingabe" placeholder="Barcode"/>
-    <input id="nameEingabe" placeholder="Produktname"/>
-    <input id="bestandEingabe" placeholder="Bestand" type="number"/>
-    <input id="mindestbestandEingabe" placeholder="Mindestbestand" type="number"/>
-    <button id ="formularButton" onclick="produkthinzufügen()"> Produkt hinzufügen </button>
-    <button onclick="formularZurücksetzen()">Abbrechen</button>
+    <!-- Diese Navigation wechselt zwischen den vier Hauptbereichen. -->
+    <nav aria-label="Hauptnavigation">
+        <button onclick="ansichtWechseln('startAnsicht')">Start</button>
+        <button onclick="ansichtWechseln('lagerAnsicht')">Lager</button>
+        <button onclick="ansichtWechseln('inventurAnsicht')">Inventur</button>
+        <button onclick="ansichtWechseln('nachbestellAnsicht')">Nachbestellen</button>
+    </nav>
 
-    <!-- Steuert eine getrennte Zählsitzung, ohne den Lagerbestand sofort zu verändern. -->
-    <h2>Inventur</h2>
+    <main>
+        <section id="startAnsicht" class="app-ansicht">
+            <h2>Start</h2>
+            <p>Willkommen bei Paarfuss Lager.</p>
+        </section>
 
-    <button id = "inventurStartButton" onclick= "inventurStarten()"> Inventur Starten </button>
-    <button id = "inventurAbbruchButton" onclick="inventurAbbrechen()" hidden > Inventur Abbrechen </button>
-    <p id = "inventurMeldung"> Keine Inventur aktiv. </p>
+        <section id="lagerAnsicht" class="app-ansicht" hidden>
+            <h2>Lager</h2>
+            <h3>Neues Produkt hinzufügen</h3>
 
-    <h2>Produktliste</h2>
+            <!-- Dieses Formular wird zum Hinzufügen und Bearbeiten verwendet. -->
+            <input id="artikelnummerEingabe" placeholder="Artikelnummer">
+            <input id="barcodeEingabe" placeholder="Barcode">
+            <input id="nameEingabe" placeholder="Produktname">
+            <input id="bestandEingabe" placeholder="Bestand" type="number">
+            <input id="mindestbestandEingabe" placeholder="Mindestbestand" type="number">
+            <button id="formularButton" onclick="produkthinzufügen()">Produkt hinzufügen</button>
+            <button onclick="formularZurücksetzen()">Abbrechen</button>
 
-    <!-- Live-Scan für flache 1D-Barcodes. -->
-    <input id="sucheEingabe" placeholder="Name, Artikelnummer oder Barcode" oninput="produkteAnzeigen()"> 
-    <button id="scannerStartButton" onclick="scannerStarten()">Barcode scannen</button>
-    <button id="scannerStopButton" onclick="scannerStoppen()" hidden>Scanner schließen</button>
-    <p id="scannerMeldung"></p>
-    <video id="scannerVideo" playsinline hidden></video>
+            <h3>Produktliste</h3>
 
-    <!-- Fotoaufnahme als Fallback für Barcodes auf gekrümmten Etiketten. -->
-    <button onclick="document.getElementById('barcodeFotoEingabe').click()">Barcode fotografieren</button>
-    <input 
-        id="barcodeFotoEingabe"
-        type = "file"
-        accept= "image/*"
-        capture = "environment"
-        onchange= "barcodeFotoAnzeigen(this)"
-        hidden
-    >
+            <!-- Live-Scanner für flache Barcodes. -->
+            <input id="sucheEingabe" placeholder="Name, Artikelnummer oder Barcode" oninput="produkteAnzeigen()">
+            <button id="scannerStartButton" onclick="scannerStarten()">Barcode scannen</button>
+            <button id="scannerStopButton" onclick="scannerStoppen()" hidden>Scanner schließen</button>
+            <p id="scannerMeldung"></p>
+            <video id="scannerVideo" playsinline hidden></video>
 
-    <p id= "fotoMeldung"></p>
+            <!-- Foto-Scanner für gekrümmte Barcodes. -->
+            <button onclick="document.getElementById('barcodeFotoEingabe').click()">Barcode fotografieren</button>
+            <input id="barcodeFotoEingabe" type="file" accept="image/*" capture="environment"
+                onchange="barcodeFotoAnzeigen(this)" hidden>
 
-    <button id = "barcodeManuellButton" onclick = "barcodeManuellEingeben()" hidden> Barcode manuell eingeben </button>
+            <p id="fotoMeldung"></p>
+            <button id="barcodeManuellButton" onclick="barcodeManuellEingeben()" hidden>
+                Barcode manuell eingeben
+            </button>
 
-    <div id="barcodeFotoBereich" class="barcode-foto-bereich" hidden>
+            <div id="barcodeFotoBereich" class="barcode-foto-bereich" hidden>
+                <img id="barcodeFotoVorschau" alt="Aufgenommenes Barcode-Foto">
+                <div class="barcode-scanrahmen"></div>
+            </div>
 
-    <img
-        id= "barcodeFotoVorschau"
-        alt= "Aufgenommenes Barcode-Foto"
-    >
-    <div class="barcode-scanrahmen"></div>
+            <select id="sortierungAuswahl" onchange="sortierungAendern()">
+                <option value="name">Nach Name sortieren</option>
+                <option value="bestand">Nach Bestand sortieren</option>
+                <option value="nachbestellen">Nachbestellen zuerst</option>
+            </select>
 
-    </div>
-    <!-- Filter und Sortierung beeinflussen nur die Anzeige, nicht die gespeicherten Produkte. -->
-    <select id="sortierungAuswahl" onchange="sortierungAendern()">
-        <option value="name">Nach Name sortieren</option>
-        <option value="bestand">Nach Bestand sortieren</option>
-        <option value="nachbestellen">Nachbestellen zuerst</option>
-    </select>
+            <p id="übersicht"></p>
 
-    <p id="übersicht"></p>              
+            <label>
+                <input id="nurNachbestellen" type="checkbox" onchange="produkteAnzeigen()">
+                Nur nachzubestellende Produkte anzeigen
+            </label>
 
-    <label>
-        <input id="nurNachbestellen" type = "checkbox" onchange="produkteAnzeigen()"/>
-        Nur nachzubestellende Produkte anzeigen
-    </label>
+            <div id="produktListe"></div>
+        </section>
 
+        <section id="inventurAnsicht" class="app-ansicht" hidden>
+            <h2>Inventur</h2>
+            <button id="inventurStartButton" onclick="inventurStarten()">Inventur starten</button>
+            <button id="inventurAbbruchButton" onclick="inventurAbbrechen()" hidden>Inventur abbrechen</button>
+            <p id="inventurMeldung">Keine Inventur aktiv.</p>
+        </section>
 
-    <!-- Der Inhalt wird vollständig durch produkteAnzeigen() erzeugt. -->
-    <div id="produktListe"></div>
+        <section id="nachbestellAnsicht" class="app-ansicht" hidden>
+            <h2>Nachbestellen</h2>
+            <div id="nachbestellListe"></div>
+        </section>
+    </main>
 
     <script src="https://unpkg.com/@zxing/browser@0.2.0/umd/zxing-browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.2/dist/iife/reader/index.js"></script>  
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/7.0.0/tesseract.min.js"></script>
 
     <script>
+        //Zeigt eine Hauptansicht und versteckt alle anderen.
+        function ansichtWechseln(ansichtId)
+        {
+            let ansichten = document.querySelectorAll(".app-ansicht");
+
+            for (let i = 0; i < ansichten.length; i++)
+            {
+                ansichten[i].hidden = ansichten[i].id !== ansichtId;
+            }
+
+            if (ansichtId === "lagerAnsicht")
+            {
+                produkteAnzeigen();
+            }
+
+            if (ansichtId === "inventurAnsicht")
+            {
+                inventurAnzeigeAktualisieren();
+            }
+
+            if (ansichtId === "nachbestellAnsicht")
+            {
+                nachbestellungenAnzeigen();
+            }
+        }
+
         // Beim Start dienen Testprodukte als Fallback; gespeicherte Daten ersetzen sie später.
         let produkte = standardProdukte();
 
@@ -821,7 +861,44 @@
 
         }
 
+        //Zeigt ausschliesslich Produkte auf oder unter ihrem Mindestbestand
+        function nachbestellungenAnzeigen()
+        {
+            let liste = document.getElementById("nachbestellListe");
 
+            liste.innerHTML = "";
+
+            let nachbestellAnzahl = 0;
+
+            for (let i = 0; i < produkte.length; i++)
+            {
+                let produkt = produkte[i];
+
+                if (produkt.bestand > produkt.mindestbestand)
+                {
+                    continue;
+                }
+
+                nachbestellAnzahl++;
+
+                liste.innerHTML +=`
+                <div>
+                    <h3>${produkt.name}</h3>
+                    <p>Artikelnummer: ${produkt.artikelnummer}</p>
+                    <p>Barcode: ${produkt.barcode}</p>
+                    <p>Aktueller Bestand: ${produkt.bestand}</p>
+                    <p>Mindestbestand: ${produkt.mindestbestand}</p>
+                    <p style="color: red; font-weight: bold;">Nachbestellen</p>
+                </div>
+                <hr>
+                `;
+            }
+
+            if (nachbestellAnzahl === 0)
+            {
+                liste.innerHTML = "<p>Keine Nachbestellungen erforderlich.</p>";
+            }
+        }
 
         // Berechnet die Kennzahlen oberhalb der Produktliste neu.
         function übersichtAktualisieren()
