@@ -117,6 +117,11 @@
             <button id="inventurStartButton" onclick="inventurStarten()">Inventur starten</button>
             <button id="inventurAbbruchButton" onclick="inventurAbbrechen()" hidden>Inventur abbrechen</button>
             <p id="inventurMeldung">Keine Inventur aktiv.</p>
+            <div id="inventurErfassung" hidden>
+            <input id="inventurBarcodeEingabe" placeholder="Barcode eingeben" inputmode="numeric">
+            <button onclick="inventurBarcodeBuchen()">Artikel zählen</button>
+            <p id="inventurScanMeldung"></p>
+            </div>
         </section>
 
         <section id="nachbestellAnsicht" class="app-ansicht" hidden>
@@ -670,6 +675,51 @@
             inventurAnzeigeAktualisieren();
         }
 
+        //Übergibt einen eingegebenen Barcode an die Inventurzählung
+        function inventurBarcodeBuchen()
+        {
+            let eingabe = document.getElementById("inventurBarcodeEingabe");
+
+            let barcode = eingabe.value.trim();
+
+            if (barcode === "")
+            {
+                alert ("Bitte einen Barcode eingeben.");
+                return;
+            }
+
+            inventurProduktZählen(
+                barcode, 
+                document.getElementById("inventurScanMeldung")
+            );
+
+            eingabe.value = "";
+            eingabe.focus();
+        }
+
+        //Erhöht nur den gezählten Inventurbestand
+        function inventurProduktZählen(barcode, meldung)
+        {
+            for (let i = 0; i < inventur.positionen.length; i++)
+            {
+                let position = inventur.positionen[i];
+
+                if ((position.barcode || "").trim() === barcode)
+                {
+                    position.gezählt++;
+
+                    inventurAnzeigeAktualisieren();
+
+                    meldung.textContent = position.name + ": " + position.gezählt + " von " + position.erwartet + " gezählt.";
+                    return;
+                }
+            }
+            meldung.textContent = "Unbekannten Barcode: " + barcode;
+        }
+
+
+
+
         // Passt Buttons und Statustext an den aktuellen Inventurzustand an.
         function inventurAnzeigeAktualisieren()
         {
@@ -677,20 +727,28 @@
 
             let abbruchButton = document.getElementById("inventurAbbruchButton");
 
+            let erfassung = document.getElementById("inventurErfassung");
+
             let meldung = document.getElementById("inventurMeldung");
 
             startButton.hidden = inventur.aktiv;
             abbruchButton.hidden = !inventur.aktiv;
+            erfassung.hidden = !inventur.aktiv;
 
-            if (inventur.aktiv)
+            if (!inventur.aktiv)
             {
-                meldung.textContent = "Inventur läuft. Produkte: " + inventur.positionen.length + " | Gezählt: 0";
+                meldung.textContent = "Keine inventur aktiv.";
+                return;
             }
 
-            else
+            let gezählteEinheiten = 0;
+
+            for (let i = 0; i < inventur.positionen.length; i++)
             {
-                meldung.textContent = "Keine Inventur aktiv";
+                gezählteEinheiten += inventur.positionen[i].gezählt;
             }
+
+            meldung.textContent = "Inventur läuft. Produkte: " + inventur.positionen.length + " | Einheiten gezählt: " + gezählteEinheiten;
         }
 
         // Ordnet einen Scan einem Produkt zu oder bereitet ein neues Produktformular vor.
