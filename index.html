@@ -76,6 +76,9 @@
 
             <!-- Live-Scanner für flache Barcodes. -->
             <input id="sucheEingabe" placeholder="Name, Artikelnummer oder Barcode" oninput="produkteAnzeigen()">
+
+            <div id="lagerScannerPlatz">
+            <div id="scannerBereich">
             <button id="scannerStartButton" onclick="scannerStarten()">Barcode scannen</button>
             <button id="scannerStopButton" onclick="scannerStoppen()" hidden>Scanner schließen</button>
             <p id="scannerMeldung"></p>
@@ -95,7 +98,8 @@
                 <img id="barcodeFotoVorschau" alt="Aufgenommenes Barcode-Foto">
                 <div class="barcode-scanrahmen"></div>
             </div>
-
+        </div>
+    </div>  
             <select id="sortierungAuswahl" onchange="sortierungAendern()">
                 <option value="name">Nach Name sortieren</option>
                 <option value="bestand">Nach Bestand sortieren</option>
@@ -117,6 +121,7 @@
             <button id="inventurStartButton" onclick="inventurStarten()">Inventur starten</button>
             <button id="inventurAbbruchButton" onclick="inventurAbbrechen()" hidden>Inventur abbrechen</button>
             <p id="inventurMeldung">Keine Inventur aktiv.</p>
+            <div id="inventurScannerPlatz"></div>
             <div id="inventurErfassung" hidden>
             <input id="inventurBarcodeEingabe" placeholder="Barcode eingeben" inputmode="numeric">
             <button onclick="inventurBarcodeBuchen()">Artikel zählen</button>
@@ -145,13 +150,19 @@
                 ansichten[i].hidden = ansichten[i].id !== ansichtId;
             }
 
+            let scannerBereich = document.getElementById("scannerBereich");
+
             if (ansichtId === "lagerAnsicht")
             {
+                document.getElementById("lagerScannerPlatz");
+                document.appendChild(scannerBereich);
                 produkteAnzeigen();
             }
 
             if (ansichtId === "inventurAnsicht")
             {
+                document.getElementById("inventurScannerPlatz");
+                document.appendChild(scannerBereich);
                 inventurAnzeigeAktualisieren();
             }
 
