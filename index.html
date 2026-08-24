@@ -154,14 +154,14 @@
 
             if (ansichtId === "lagerAnsicht")
             {
-                document.getElementById("lagerScannerPlatz");
+              let lagerScannerPlatz = document.getElementById("lagerScannerPlatz");
                 lagerScannerPlatz.appendChild(scannerBereich);
                 produkteAnzeigen();
             }
 
             if (ansichtId === "inventurAnsicht")
             {
-                document.getElementById("inventurScannerPlatz");
+               let inventurScannerPlatz = document.getElementById("inventurScannerPlatz");
                 inventurScannerPlatz.appendChild(scannerBereich);
                 inventurAnzeigeAktualisieren();
             }
@@ -765,6 +765,17 @@
         // Ordnet einen Scan einem Produkt zu oder bereitet ein neues Produktformular vor.
         function scanVerarbeiten(barcode, meldung)
         {
+
+            barcode = barcode.trim();
+
+            let scannerIstInInventur = document.getElementById("inventurScannerPlatz").contains(document.getElementById("scannerBereich"));
+
+            if (inventu.aktiv && scannerIstInInventur)
+            {
+                inventurProduktZählen(barcode, meldung);
+                return;
+            }
+
             let produktIndex = -1;
 
             // Barcodes werden exakt verglichen, damit nur das richtige Produkt gebucht wird.
