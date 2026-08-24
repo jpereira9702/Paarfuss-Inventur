@@ -127,6 +127,10 @@
             <button onclick="inventurBarcodeBuchen()">Artikel zählen</button>
             <p id="inventurScanMeldung"></p>
             </div>
+            <div id="inventurUnbekannteBereich" hidden>
+                <h3>Unbekannte Barcodes</h3>
+                <div id="inventurUnbekannteListe"></div>
+            </div>
         </section>
 
         <section id="nachbestellAnsicht" class="app-ansicht" hidden>
@@ -740,10 +744,61 @@
                     return;
                 }
             }
-            meldung.textContent = "Unbekannten Barcode: " + barcode;
+            let unbekannterIndex = -1;
+
+            for (let i = 0; i < inventur.unbekannteBarcodes.length; i++)
+            {
+                if (inventur.unbekannteBarcodes[i].barcode === barcode)
+                {
+                    unbekannterIndex = i;
+                    break;
+                }
+            }
+
+            if (unbekannterIndex === -1)
+            {
+                inventur.unbekannteBarcodes.push({
+                    barcode: barcode,
+                    anzahl: 1
+                });
+            }
+            else{
+                inventur.unbekannteBarcodes[unbekannterIndex].anzahl++;
+            }
+
+            inventurAnzeigeAktualisieren();
+
+            meldung.textContent = "Unbekannte Barcode: " + barcode + ". Bitte Produkt kontrollieren.";
         }
 
+        //Zeigt alle während der Inventur gefundenen unbekannten Barcodes an
+        function inventurUnbekannteAnzeigen()
+        {
+            let bereich = document.getElementById("inventurUnbekannteBereich");
 
+            let liste = document.getElementById("inventurUnbekannteListe");
+
+            liste.innerHTML = "";
+
+            if (!inventur.aktiv || inventur.unbekannteBarcodes.length === 0)
+            {
+                bereich.hidden = true;
+                return;
+            }
+
+            bereich.hidden = false;
+
+            for(let i = 0; i < inventur.unbekannteBarcodes.length; i++)
+            {
+                let unbekannterBarcode = inventur.unbekannteBarcodes[i];
+
+                let eintrag = document.createElement("p");
+
+                eintrag.textContent = "Barcode: " + unbekannterBarcode.barcode + " | Gezählt: " + unbekannterBarcode.anzahl;
+
+                liste.appendChild(eintrag);
+            }
+        }
 
 
         // Passt Buttons und Statustext an den aktuellen Inventurzustand an.
@@ -756,6 +811,8 @@
             let erfassung = document.getElementById("inventurErfassung");
 
             let meldung = document.getElementById("inventurMeldung");
+
+            inventurUnbekannteAnzeigen();
 
             startButton.hidden = inventur.aktiv;
             abbruchButton.hidden = !inventur.aktiv;
