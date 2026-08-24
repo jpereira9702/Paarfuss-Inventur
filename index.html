@@ -431,14 +431,27 @@
         // Bringt den Benutzer nach einem fehlgeschlagenen Scan direkt zum Barcodefeld.
         function barcodeManuellEingeben()
         {
-            let barcodeEingabe = document.getElementById("barcodeEingabe");
-            
-            barcodeEingabe.scrollIntoView({
+           let barcodeEingabe;
+
+           let scannerIstInInventur = document.getElementById("inventurScannerPlatz").contains(document.getElementById("scannerBereich"));
+
+           if (inventur.aktiv && scannerIstInInventur)
+           {
+             document.getElementById("inventurErfassung").hidden = false;
+
+             barcodeEingabe = document.getElementById("inventurBarcodeEingeben");
+           }
+           else
+           {
+            barcodeEingabe = document.getElementById("barcodeEingabe");
+           }
+
+           barcodeEingabe.scrollIntoView({
                 behavior: "smooth",
                 block: "center"
-            });
+           });
 
-            barcodeEingabe.focus();
+           barcodeEingabe.focus();
         }
 
         // Entfernt Foto, Scanrahmen und manuellen Rückweg nach einer erfolgreichen Verarbeitung.
@@ -627,6 +640,8 @@
               {
                 scannerStoppen();
                 meldung.textContent = "Die Kamera konnte nicht gestartet werden.";
+
+                document.getElementById("barcodeManuellButton").hidden = false;
               }
 
         }
@@ -744,10 +759,11 @@
 
             startButton.hidden = inventur.aktiv;
             abbruchButton.hidden = !inventur.aktiv;
-            erfassung.hidden = !inventur.aktiv;
+            // erfassung.hidden = !inventur.aktiv;
 
             if (!inventur.aktiv)
             {
+                erfassung.hidden = true;
                 meldung.textContent = "Keine inventur aktiv.";
                 return;
             }
@@ -770,7 +786,7 @@
 
             let scannerIstInInventur = document.getElementById("inventurScannerPlatz").contains(document.getElementById("scannerBereich"));
 
-            if (inventu.aktiv && scannerIstInInventur)
+            if (inventur.aktiv && scannerIstInInventur)
             {
                 inventurProduktZählen(barcode, meldung);
                 return;
