@@ -127,6 +127,12 @@
             <button onclick="inventurBarcodeBuchen()">Artikel zählen</button>
             <p id="inventurScanMeldung"></p>
             </div>
+
+            <div id="inventurVergleichBereich" hidden>
+                <h3>Soll-Ist-Vergleich</h3>
+                <div id="inventurVergleichListe"></div>
+            </div>
+
             <div id="inventurUnbekannteBereich" hidden>
                 <h3>Unbekannte Barcodes</h3>
                 <div id="inventurUnbekannteListe"></div>
@@ -443,7 +449,7 @@
            {
              document.getElementById("inventurErfassung").hidden = false;
 
-             barcodeEingabe = document.getElementById("inventurBarcodeEingeben");
+             barcodeEingabe = document.getElementById("inventurBarcodeEingabe");
            }
            else
            {
@@ -768,8 +774,56 @@
 
             inventurAnzeigeAktualisieren();
 
-            meldung.textContent = "Unbekannte Barcode: " + barcode + ". Bitte Produkt kontrollieren.";
+            meldung.textContent = "Unbekannter Barcode: " + barcode + ". Bitte Produkt kontrollieren.";
         }
+
+        //Zeigt für jedes Produkt Sollbestand, Zählmenge und Differenz an
+        function inventurVergleichAnzeigen(){
+
+            let bereich = document.getElementById("inventurVergleichBereich");
+            let liste = document.getElementById("inventurVergleichListe");
+
+            liste.innerHTML = "";
+
+            if (!inventur.aktiv)
+            {
+                bereich.hidden = true;
+                return;
+            }
+
+            bereich.hidden = false;
+
+            for(let i = 0; i < inventur.positionen.length; i++)
+            {
+                let position = inventur.positionen[i];
+
+                let differenz = position.gezählt - position.erwartet;
+                let status = "Stimmt";
+
+                if (differenz < 0)
+                {
+                    status = "Fehlen: " + Math.abs(differenz);
+                }
+                else if(differenz > 0)
+                {
+                    status = "Überschuss: " + differenz;
+                }
+
+                let eintrag = document.createElement("p");
+
+                let differenzText = differenz;
+
+                if (differenz > 0)
+                {
+                    differenzText = "+" + differenz;
+                }
+
+                eintrag.textContent = position.name + " | Soll: " + position.erwartet + " | Ist: " + position.gezählt + " | Differenz: " + differenzText + " | " + status;
+
+                liste.appendChild(eintrag);
+            }
+        }
+
 
         //Zeigt alle während der Inventur gefundenen unbekannten Barcodes an
         function inventurUnbekannteAnzeigen()
@@ -812,6 +866,7 @@
 
             let meldung = document.getElementById("inventurMeldung");
 
+            inventurVergleichAnzeigen();
             inventurUnbekannteAnzeigen();
 
             startButton.hidden = inventur.aktiv;
