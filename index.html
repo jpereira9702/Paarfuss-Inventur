@@ -154,6 +154,7 @@
         //Zeigt eine Hauptansicht und versteckt alle anderen.
         function ansichtWechseln(ansichtId)
         {
+            scannerStoppen();
             let ansichten = document.querySelectorAll(".app-ansicht");
 
             for (let i = 0; i < ansichten.length; i++)
@@ -202,6 +203,11 @@
         let scannerSteuerung = null; 
         let scannerLeser = null;
         let ocrWorker = null;
+        let scannerStartLaeuft = false;
+        let scannerAuftrag = 0;
+        let fotoAuftrag = 0;
+        let aktuelleFotoAdresse = null;
+        let ocrWarteschlange = Promise.resolve();
 
         // Liefert Testprodukte, wenn im Browser noch keine eigenen Produkte gespeichert sind.
         function standardProdukte()
@@ -290,15 +296,26 @@
             }
 
             let datei = eingabe.files[0];
+            scannerStoppen();
+            let auftrag = fotoAuftrag;
             let vorschau = document.getElementById("barcodeFotoVorschau");
 
             // Die temporäre URL zeigt die lokale Datei an, ohne sie hochzuladen.
             let fotoAdresse = URL.createObjectURL(datei);
+            aktuelleFotoAdresse = fotoAdresse;
 
             vorschau.onload = async function()
             {
-                await barcodeFotoVerarbeiten(datei, vorschau);
-                URL.revokeObjectURL(fotoAdresse);
+                if (auftrag !== fotoAuftrag) return;
+                vorschau.onload = null;
+                await barcodeFotoVerarbeiten(datei, vorschau, auftrag);
+            };
+            vorschau.onerror = function()
+            {
+                if (auftrag !== fotoAuftrag) return;
+                barcodeFotoZurücksetzen();
+                document.getElementById("fotoMeldung").textContent = "Foto konnte nicht geladen werden. Bitte erneut fotografieren oder manuell eingeben.";
+                document.getElementById("barcodeManuellButton").hidden = false;
             };
 
             vorschau.src = fotoAdresse;
@@ -369,8 +386,9 @@
 
 
         // Prüft zuerst den vergrößerten Ausschnitt, danach das ganze Foto und zuletzt die Ziffern.
-        async function barcodeFotoVerarbeiten(datei, vorschau)
+        async function barcodeFotoVerarbeiten(datei, vorschau, auftrag)
         {
+            if (auftrag !== fotoAuftrag) return;
             let meldung = document.getElementById("fotoMeldung");
 
             // Begrenzt ZXing auf unterstützte Strichcodes und aktiviert gründlichere Suchvarianten.
@@ -394,10 +412,12 @@
                 meldung.textContent = "Barcode im markierten Bereich wird gesucht...";
 
                 let ausschnitt = await barcodeAusschnittErstellen(vorschau);
+                if (auftrag !== fotoAuftrag) return;
                 let ergebnisse = await ZXingWASM.readBarcodes(
                     ausschnitt,
                     optionen
                 );
+                if (auftrag !== fotoAuftrag) return;
 
                 // Ohne Treffer im Rahmen folgt ein zweiter Versuch mit dem vollständigen Foto.
                 if (ergebnisse.length === 0)
@@ -408,13 +428,14 @@
                         datei,
                         optionen
                     );
+                    if (auftrag !== fotoAuftrag) return;
                 }
                 // OCR liest als letzte kostenlose Rückfallebene die aufgedruckten Barcode-Ziffern.
                 if (ergebnisse.length === 0)
                 {
                     meldung.textContent = "Barcode nicht direkt erkannt. Ziffern werden gelesen..."
 
-                    await barcodeZiffernLesen(vorschau);
+                    await barcodeZiffernLesen(vorschau, auftrag);
                     return;
                 }
 
@@ -431,6 +452,7 @@
 
             catch (fehler)
             {
+                if (auftrag !== fotoAuftrag) return;
                 console.error("WASM-Fotoerkennung fehlgeschalgen:", fehler);
 
                 meldung.textContent = "Fotoerkennung fehlgeschlagen. Bitte den barcode manuell eingeben.";
@@ -442,6 +464,7 @@
         // Bringt den Benutzer nach einem fehlgeschlagenen Scan direkt zum Barcodefeld.
         function barcodeManuellEingeben()
         {
+           scannerStoppen();
            let barcodeEingabe;
 
            let scannerIstInInventur = document.getElementById("inventurScannerPlatz").contains(document.getElementById("scannerBereich"));
@@ -468,11 +491,20 @@
         // Entfernt Foto, Scanrahmen und manuellen Rückweg nach einer erfolgreichen Verarbeitung.
         function barcodeFotoZurücksetzen()
         {
+            // Die Kennung entwertet auch bereits gestartete, noch nicht fertige Fotoauswertungen.
+            fotoAuftrag++;
             let bereich = document.getElementById("barcodeFotoBereich");
             let vorschau = document.getElementById("barcodeFotoVorschau");
 
             bereich.hidden = true;
+            vorschau.onload = null;
+            vorschau.onerror = null;
             vorschau.removeAttribute("src");
+            if (aktuelleFotoAdresse !== null)
+            {
+                URL.revokeObjectURL(aktuelleFotoAdresse);
+                aktuelleFotoAdresse = null;
+            }
 
             document.getElementById("barcodeFotoEingabe").value = "";
             document.getElementById("barcodeManuellButton").hidden = true;
@@ -504,13 +536,23 @@
 
 
         // Liest mögliche Barcode-Ziffern mit Tesseract aus mehreren horizontalen Bildstreifen.
-        async function barcodeZiffernLesen(bild) 
+        // Der gemeinsame OCR-Worker bearbeitet jeweils nur ein Foto.
+        function barcodeZiffernLesen(bild, auftrag)
         {
+            let arbeit = ocrWarteschlange.then(() => barcodeZiffernErkennen(bild, auftrag));
+            ocrWarteschlange = arbeit.catch(() => {});
+            return arbeit;
+        }
+
+        async function barcodeZiffernErkennen(bild, auftrag)
+        {
+            if (auftrag !== fotoAuftrag) return;
             let meldung = document.getElementById("fotoMeldung");
             
             if (typeof Tesseract === "undefined")
             {
                 meldung.textContent = "Die Ziffererkennung konnte nicht geladen werden.";
+                document.getElementById("barcodeManuellButton").hidden = false;
                 return;
             }
 
@@ -520,13 +562,23 @@
                 if (ocrWorker === null)
                 {
                     meldung.textContent = "Ziffererkennung wird vorbereitet...";
-                    ocrWorker = await Tesseract.createWorker("eng");
+                    let worker = await Tesseract.createWorker("eng");
 
-                    await ocrWorker.setParameters({
-                        tessedit_char_whitelist: "0123456789",
-                        tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE
-                    });
+                    try
+                    {
+                        await worker.setParameters({
+                            tessedit_char_whitelist: "0123456789",
+                            tessedit_pageseg_mode: Tesseract.PSM.SINGLE_LINE
+                        });
+                        ocrWorker = worker;
+                    }
+                    catch (fehler)
+                    {
+                        await worker.terminate();
+                        throw fehler;
+                    }
                 }
+                if (auftrag !== fotoAuftrag) return;
 
                 meldung.textContent = "Ziffern werden erkannt...";
 
@@ -551,6 +603,7 @@
                 let ergebnis = await ocrWorker.recognize(bild, {
                     rectangle: leseBereich
                 });
+                if (auftrag !== fotoAuftrag) return;
 
                 let ziffern = ergebnis.data.text.replace(/\D/g, "");
 
@@ -572,6 +625,7 @@
 
             catch(fehler)
             {
+                if (auftrag !== fotoAuftrag) return;
                 console.error("Die Ziffererkennung ist fehlgeschlagen", fehler);
 
                 meldung.textContent = "Ziffererkennung fehlgeschlagen. Bitte den Barcode manuell eingeben.";
@@ -587,7 +641,7 @@
         async function scannerStarten()
         {
             // Verhindert, dass mehrere Kamera-Scanner gleichzeitig gestartet werden.
-            if (scannerSteuerung !== null)
+            if (scannerSteuerung !== null || scannerStartLaeuft)
             {
                 return;
             }
@@ -598,9 +652,14 @@
             if (typeof ZXingBrowser === "undefined")
             {
                 meldung.textContent = "Scanner konnte nicht geladen werden.";
+                document.getElementById("barcodeManuellButton").hidden = false;
                 return;
             }
 
+            scannerStoppen();
+            let auftrag = scannerAuftrag;
+            scannerStartLaeuft = true;
+            document.getElementById("scannerStartButton").disabled = true;
             video.hidden = false;
             document.getElementById("scannerStartButton").hidden = true;
             document.getElementById("scannerStopButton").hidden = false;
@@ -608,13 +667,11 @@
             meldung.textContent = "Kamera wird gestartet...";
 
 
-            scannerLeser = new ZXingBrowser.BrowserMultiFormatOneDReader();
-
-
             try
             {
+                scannerLeser = new ZXingBrowser.BrowserMultiFormatOneDReader();
                 // "ideal" bevorzugt diese Werte, erlaubt aber schwächeren Kameras einen Fallback.
-                scannerSteuerung = await scannerLeser.decodeFromConstraints(
+                let steuerung = await scannerLeser.decodeFromConstraints(
                 {
                     video: {
                         facingMode: {
@@ -632,28 +689,45 @@
             }
                 },
                 video,
-                function(ergebnis)
+                function(ergebnis, fehler, steuerung)
                 {
+                    if (auftrag !== scannerAuftrag) return;
                     if(ergebnis)
                     {
-                        let barcode = ergebnis.getText();
+                        let barcode = ergebnis.getText().trim();
+                        if (barcode === "") return;
 
+                        scannerSteuerung = steuerung;
                         scannerStoppen();
                         scanVerarbeiten(barcode, meldung);
                     }
                 }
               );
+              // Ein früher Treffer oder Abbruch kann vor Abschluss des Kamerastarts eintreffen.
+              if (auftrag !== scannerAuftrag)
+              {
+                  steuerung.stop();
+                  return;
+              }
+              scannerSteuerung = steuerung;
               await kameraOptimieren(video);
+              if (auftrag !== scannerAuftrag) return;
               meldung.textContent = "Barcode vor die Kamera halten.";
             }
             
             catch (fehler)
               {
+                if (auftrag !== scannerAuftrag) return;
                 scannerStoppen();
                 meldung.textContent = "Die Kamera konnte nicht gestartet werden.";
 
                 document.getElementById("barcodeManuellButton").hidden = false;
               }
+            finally
+            {
+                scannerStartLaeuft = false;
+                document.getElementById("scannerStartButton").disabled = false;
+            }
 
         }
 
@@ -703,6 +777,7 @@
                 return;
             }
 
+            scannerStoppen();
             inventurAnzeigeAktualisieren();
         }
 
@@ -951,8 +1026,56 @@
 
                 eintrag.textContent = position.name + " | Soll: " + position.erwartet + " | Ist: " + position.gezählt + " | Differenz: " + differenzText + " | " + status;
 
+                let beschriftung = document.createElement("label");
+                beschriftung.textContent = "Gezählte Gesamtmenge: ";
+
+                let eingabe = document.createElement("input");
+                eingabe.type = "number";
+                eingabe.min = "0";
+                eingabe.step = "1";
+                eingabe.value = position.gezählt;
+                beschriftung.appendChild(eingabe);
+
+                let speichernButton = document.createElement("button");
+                speichernButton.type = "button";
+                speichernButton.textContent = "Menge übernehmen";
+                speichernButton.onclick = function() {
+                    inventurMengeSetzen(i, eingabe);
+                };
+
+                eintrag.appendChild(document.createElement("br"));
+                eintrag.appendChild(beschriftung);
+                eintrag.appendChild(speichernButton);
                 liste.appendChild(eintrag);
             }
+        }
+
+        // Ersetzt die gesamte Zählmenge, auch bei Produkten ohne Barcode.
+        function inventurMengeSetzen(index, eingabe)
+        {
+            let position = inventur.positionen[index];
+            if (!inventur.aktiv || !position)
+            {
+                return;
+            }
+
+            let menge = Number(eingabe.value);
+            if (eingabe.value.trim() === "" || !Number.isSafeInteger(menge) || menge < 0)
+            {
+                alert("Bitte eine ganze Zahl ab 0 eingeben.");
+                return;
+            }
+
+            let bisherigeInventur = structuredClone(inventur);
+            position.gezählt = menge;
+
+            if (!inventurAenderungSpeichern(bisherigeInventur))
+            {
+                eingabe.value = inventur.positionen[index].gezählt;
+                return;
+            }
+
+            inventurAnzeigeAktualisieren();
         }
 
 
@@ -1029,6 +1152,11 @@
         {
 
             barcode = barcode.trim();
+            if (barcode === "")
+            {
+                meldung.textContent = "Kein Barcode erkannt. Bitte erneut versuchen.";
+                return;
+            }
 
             let scannerIstInInventur = document.getElementById("inventurScannerPlatz").contains(document.getElementById("scannerBereich"));
 
@@ -1084,6 +1212,9 @@
         // Stoppt Decoder und Kameraspuren und stellt die ursprünglichen Bedienelemente wieder her.
         function scannerStoppen()
         {
+            scannerAuftrag++;
+            barcodeFotoZurücksetzen();
+            document.getElementById("fotoMeldung").textContent = "";
             if (scannerSteuerung !== null)
             {
                 scannerSteuerung.stop();

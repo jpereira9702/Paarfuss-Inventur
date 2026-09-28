@@ -3,7 +3,7 @@
 Mobile Web-App zur Verwaltung des Lagers, zur barcodegestuetzten Inventur und zur Anzeige nachzubestellender Produkte fuer ein Fusspflegeunternehmen.
 
 **Projektstatus:** Entwicklung  
-**Stand:** 24. August 2026  
+**Stand:** 28. September 2026
 **Geplante Kundenuebergabe:** spaetestens 31. Oktober 2026  
 **Live-Version:** [GitHub Pages](https://jpereira9702.github.io/Paarfuss-Inventur/)
 
@@ -117,12 +117,13 @@ Bereits umgesetzt:
 - Inventur nach Bestaetigung abschliessen und gezaehlte Bestaende uebernehmen
 - laufende Inventur nach Start und jeder Zaehlung lokal speichern
 - offene Inventur nach dem Neuladen automatisch wieder anzeigen
+- Gesamtzaehlmenge pro Produkt manuell korrigieren, auch ohne Barcode
 
 Noch offen:
 
 - aktuelle Kameraanbindung auf dem Handy abschliessend testen
 - Wiederaufnahme einer Inventur auf dem Handy pruefen
-- manuelle Mengenkorrektur und Erfassung von Produkten ohne Barcode ergaenzen
+- manuelle Mengenkorrektur und Erfassung ohne Barcode auf dem Handy pruefen
 
 Unter dem bestehenden localStorage-Schluessel `produkte` wird jetzt ein Objekt
 mit `produkte` und `inventur` gespeichert. Alte Produktarrays werden weiterhin
@@ -274,7 +275,7 @@ Die juengsten Aenderungen an der Scannerweiterleitung und am manuellen Inventur-
 
 - Daten liegen nur lokal im jeweiligen Browser.
 - Laufende Inventuren sind lokal gespeichert und noch nicht zwischen Geraeten synchronisiert.
-- Manuelle Mengenkorrekturen und eine Inventurhistorie fehlen noch.
+- Eine Inventurhistorie fehlt noch.
 - Es gibt noch keine Anmeldung oder Benutzerrollen.
 - Es gibt noch keinen serverseitigen Aenderungsverlauf und kein Backup.
 - Die Oberflaeche verwendet noch weitgehend Browser-Standarddesign.
@@ -296,7 +297,8 @@ Die juengsten Aenderungen an der Scannerweiterleitung und am manuellen Inventur-
 - [x] gezaehlte Werte kontrolliert in das Lager uebernehmen
 - [x] laufende Inventur zwischenspeichern
 - [ ] Wiederaufnahme einer Inventur auf dem Handy testen
-- [ ] manuelle Mengenkorrektur und Produkte ohne Barcode unterstuetzen
+- [x] manuelle Mengenkorrektur und Produkte ohne Barcode unterstuetzen
+- [ ] manuelle Mengenkorrektur auf dem Handy testen
 
 Automatisierte Tests fuer Speicherung, Wiederaufnahme, Abschluss, Abbruch,
 Speicherfehler und alte Datenformate:
