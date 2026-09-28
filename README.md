@@ -7,7 +7,7 @@ Mobile Web-App zur Verwaltung des Lagers, zur barcodegestuetzten Inventur und zu
 **Geplante Kundenuebergabe:** spaetestens 31. Oktober 2026  
 **Live-Version:** [GitHub Pages](https://jpereira9702.github.io/Paarfuss-Inventur/)
 
-> Die Anwendung wird als echte Kundenversion entwickelt, ist im aktuellen Stand aber noch nicht fuer die finale Uebergabe bereit. Insbesondere fehlen noch der vollstaendige Inventurabschluss, eine zentrale Datenbank, Benutzerkonten und die finale Oberflaeche.
+> Die Anwendung wird als echte Kundenversion entwickelt, ist im aktuellen Stand aber noch nicht fuer die finale Uebergabe bereit. Insbesondere fehlen noch eine zentrale Datenbank, Benutzerkonten und die finale Oberflaeche.
 
 ## Ziel der Anwendung
 
@@ -113,15 +113,22 @@ Bereits umgesetzt:
 - gemeinsamen Kamera- und Foto-Scanner in den Inventurbereich verschieben
 - Inventurzaehlung vom echten Lagerbestand trennen
 - Anzahl der gezaehlten Einheiten anzeigen
+- unbekannte Barcodes sammeln und Soll-Ist-Differenzen anzeigen
+- Inventur nach Bestaetigung abschliessen und gezaehlte Bestaende uebernehmen
+- laufende Inventur nach Start und jeder Zaehlung lokal speichern
+- offene Inventur nach dem Neuladen automatisch wieder anzeigen
 
 Noch offen:
 
 - aktuelle Kameraanbindung auf dem Handy abschliessend testen
-- unbekannte Barcodes sichtbar sammeln
-- Soll-Ist-Vergleich anzeigen
-- Inventur abschliessen
-- gezaehlte Bestaende erst nach ausdruecklicher Bestaetigung uebernehmen
-- laufende Inventur dauerhaft speichern und nach einem Neustart fortsetzen
+- Wiederaufnahme einer Inventur auf dem Handy pruefen
+- manuelle Mengenkorrektur und Erfassung von Produkten ohne Barcode ergaenzen
+
+Unter dem bestehenden localStorage-Schluessel `produkte` wird jetzt ein Objekt
+mit `produkte` und `inventur` gespeichert. Alte Produktarrays werden weiterhin
+eingelesen und beim naechsten Speichern in das neue Format uebernommen.
+Beim Abschluss werden Lagerbestand und inaktiver Inventurstatus gemeinsam
+gespeichert. Bei einem Speicherfehler bleibt die vorherige Inventur erhalten.
 
 ### Nachbestellungen
 
@@ -147,7 +154,7 @@ Das bedeutet aktuell:
 - Jeder Browser und jedes Geraet besitzt eigene Daten.
 - Handy, Tablet und Computer sind noch nicht synchronisiert.
 - Das Loeschen der Browserdaten entfernt auch die gespeicherten Produkte.
-- Eine laufende Inventur wird noch nicht dauerhaft gespeichert.
+- Eine laufende Inventur wird im selben Browser zwischengespeichert.
 - Es gibt noch keine Benutzerkonten, Rollen oder serverseitigen Backups.
 
 Vor der Kundenuebergabe wird eine zentrale Datenbank benoetigt, damit alle berechtigten Geraete denselben Datenstand verwenden.
@@ -266,8 +273,8 @@ Die juengsten Aenderungen an der Scannerweiterleitung und am manuellen Inventur-
 ## Bekannte Grenzen
 
 - Daten liegen nur lokal im jeweiligen Browser.
-- Eine laufende Inventur geht beim Neuladen verloren.
-- Es gibt noch keinen Inventurabschluss und keine Differenzliste.
+- Laufende Inventuren sind lokal gespeichert und noch nicht zwischen Geraeten synchronisiert.
+- Manuelle Mengenkorrekturen und eine Inventurhistorie fehlen noch.
 - Es gibt noch keine Anmeldung oder Benutzerrollen.
 - Es gibt noch keinen serverseitigen Aenderungsverlauf und kein Backup.
 - Die Oberflaeche verwendet noch weitgehend Browser-Standarddesign.
@@ -283,11 +290,20 @@ Die juengsten Aenderungen an der Scannerweiterleitung und am manuellen Inventur-
 - [x] Produkte manuell zaehlen
 - [x] gemeinsamen Scanner in den Inventurbereich integrieren
 - [ ] Scannerweiterleitung auf dem Handy testen
-- [ ] unbekannte Barcodes erfassen und anzeigen
-- [ ] Soll-Ist-Differenzen je Produkt anzeigen
-- [ ] Inventurabschluss mit Bestaetigung bauen
-- [ ] gezaehlte Werte kontrolliert in das Lager uebernehmen
-- [ ] laufende Inventur zwischenspeichern
+- [x] unbekannte Barcodes erfassen und anzeigen
+- [x] Soll-Ist-Differenzen je Produkt anzeigen
+- [x] Inventurabschluss mit Bestaetigung bauen
+- [x] gezaehlte Werte kontrolliert in das Lager uebernehmen
+- [x] laufende Inventur zwischenspeichern
+- [ ] Wiederaufnahme einer Inventur auf dem Handy testen
+- [ ] manuelle Mengenkorrektur und Produkte ohne Barcode unterstuetzen
+
+Automatisierte Tests fuer Speicherung, Wiederaufnahme, Abschluss, Abbruch,
+Speicherfehler und alte Datenformate:
+
+```sh
+node --test tests/inventur-speichern.test.cjs
+```
 
 ### Phase 2: Scanner stabilisieren
 

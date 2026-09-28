@@ -660,6 +660,12 @@
         // Erstellt eine Momentaufnahme aller Sollbestände für eine neue Inventursitzung.
         function inventurStarten()
         {
+            if (inventur.aktiv)
+            {
+                alert("Es läuft bereits eine Inventur. Du kannst die vorhandene Zählung fortsetzen.");
+                return;
+            }
+
             if (produkte.length === 0)
             {
                 alert ("Es sind keine Produkte für die Inventur vorhanden.");
@@ -672,6 +678,7 @@
                 return;
             }
 
+            let bisherigeInventur = structuredClone(inventur);
             inventur.aktiv = true;
             inventur.gestartetAm = new Date().toISOString();
             inventur.positionen = [];
@@ -691,6 +698,11 @@
                 });
             }
 
+            if (!inventurAenderungSpeichern(bisherigeInventur))
+            {
+                return;
+            }
+
             inventurAnzeigeAktualisieren();
         }
 
@@ -704,11 +716,18 @@
                 return;
             }
 
+            let bisherigeInventur = structuredClone(inventur);
             inventur.aktiv = false;
             inventur.gestartetAm = null;
             inventur.positionen = [];
             inventur.unbekannteBarcodes = [];
 
+            if (!inventurAenderungSpeichern(bisherigeInventur))
+            {
+                return;
+            }
+
+            scannerStoppen();
             inventurAnzeigeAktualisieren();
         }
 
@@ -764,7 +783,14 @@
             }
 
             let bisherigeProdukte = produkte;
+            let bisherigeInventur = inventur;
             produkte = neueProdukte;
+            inventur = {
+                aktiv: false,
+                gestartetAm: null,
+                positionen: [],
+                unbekannteBarcodes: []
+            };
 
             try
             {
@@ -774,15 +800,12 @@
             {
                 // Bei einem Speicherfehler bleiben Lager und Zählung für einen erneuten Versuch erhalten.
                 produkte = bisherigeProdukte;
+                inventur = bisherigeInventur;
                 alert("Die Bestände konnten nicht gespeichert werden. Die Inventur bleibt aktiv. " + fehler.message);
                 return;
             }
 
             scannerStoppen();
-            inventur.aktiv = false;
-            inventur.gestartetAm = null;
-            inventur.positionen = [];
-            inventur.unbekannteBarcodes = [];
 
             document.getElementById("inventurBarcodeEingabe").value = "";
             document.getElementById("inventurScanMeldung").textContent = "";
@@ -817,6 +840,21 @@
         //Erhöht nur den gezählten Inventurbestand
         function inventurProduktZählen(barcode, meldung)
         {
+            if (!inventur.aktiv)
+            {
+                meldung.textContent = "Bitte zuerst eine Inventur starten.";
+                return;
+            }
+
+            barcode = barcode.trim();
+            if (barcode === "")
+            {
+                meldung.textContent = "Bitte einen Barcode eingeben.";
+                return;
+            }
+
+            let bisherigeInventur = structuredClone(inventur);
+
             for (let i = 0; i < inventur.positionen.length; i++)
             {
                 let position = inventur.positionen[i];
@@ -824,6 +862,12 @@
                 if ((position.barcode || "").trim() === barcode)
                 {
                     position.gezählt++;
+
+                    if (!inventurAenderungSpeichern(bisherigeInventur))
+                    {
+                        meldung.textContent = "Nicht gezählt: Speichern fehlgeschlagen. Bitte erneut versuchen.";
+                        return;
+                    }
 
                     inventurAnzeigeAktualisieren();
 
@@ -851,6 +895,12 @@
             }
             else{
                 inventur.unbekannteBarcodes[unbekannterIndex].anzahl++;
+            }
+
+            if (!inventurAenderungSpeichern(bisherigeInventur))
+            {
+                meldung.textContent = "Nicht gezählt: Speichern fehlgeschlagen. Bitte erneut versuchen.";
+                return;
             }
 
             inventurAnzeigeAktualisieren();
@@ -1227,10 +1277,26 @@
 
 
 
-        // Speichert die vollständige Produktliste dauerhaft im aktuellen Browser.
+        // Speichert Lager und Inventur gemeinsam, damit ein Abschluss nicht nur teilweise gespeichert wird.
         function produkteSpeichern()
         {
-            localStorage.setItem("produkte", JSON.stringify(produkte));
+            localStorage.setItem("produkte", JSON.stringify({ produkte, inventur }));
+        }
+
+        // Stellt bei einem Speicherfehler die Inventur vor der letzten Aktion wieder her.
+        function inventurAenderungSpeichern(bisherigeInventur)
+        {
+            try
+            {
+                produkteSpeichern();
+                return true;
+            }
+            catch (fehler)
+            {
+                inventur = bisherigeInventur;
+                alert("Die Inventuränderung wurde nicht gespeichert. Bitte erneut versuchen. " + fehler.message);
+                return false;
+            }
         }
 
         // Lädt vorhandene Browserdaten und ergänzt Felder aus älteren Datenständen.
@@ -1239,7 +1305,18 @@
             let gespeicherteProdukte = localStorage.getItem("produkte");
             if (gespeicherteProdukte !== null)
             {
-                produkte = JSON.parse(gespeicherteProdukte);
+                let daten = JSON.parse(gespeicherteProdukte);
+
+                // Ältere Versionen speicherten nur ein Array mit Produkten.
+                if (Array.isArray(daten))
+                {
+                    produkte = daten;
+                }
+                else
+                {
+                    produkte = daten.produkte;
+                    inventur = daten.inventur;
+                }
 
                 // Ergänzt Felder, die in älteren gespeicherten Produkten noch fehlen.
                 for (let i = 0; i < produkte.length; i++)
@@ -1253,7 +1330,6 @@
                         produkte[i].barcode = "";
                     }
                 }
-                produkteSpeichern();
             }
         }
 
@@ -1422,6 +1498,10 @@
         produkteLaden();
         produkteAnzeigen();
         inventurAnzeigeAktualisieren();
+        if (inventur.aktiv)
+        {
+            ansichtWechseln("inventurAnsicht");
+        }
     </script>
 </body>
 </html>
