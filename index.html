@@ -120,6 +120,7 @@
             <h2>Inventur</h2>
             <button id="inventurStartButton" onclick="inventurStarten()">Inventur starten</button>
             <button id="inventurAbbruchButton" onclick="inventurAbbrechen()" hidden>Inventur abbrechen</button>
+            <button id="inventurAbschlussButton" onclick = "inventurAbschliessen()" hidden>Inventur abschließen</button> 
             <p id="inventurMeldung">Keine Inventur aktiv.</p>
             <div id="inventurScannerPlatz"></div>
             <div id="inventurErfassung" hidden>
@@ -711,6 +712,86 @@
             inventurAnzeigeAktualisieren();
         }
 
+        // Übernimmt bestätigte Zählmengen und beendet die Inventur erst nach erfolgreichem Speichern.
+        function inventurAbschliessen()
+        {
+            if (!inventur.aktiv)
+            {
+                alert("Es ist keine Inventur aktiv.");
+                return;
+            }
+
+            let unbekannteEinheiten = 0;
+
+            for (let i = 0; i < inventur.unbekannteBarcodes.length; i++)
+            {
+                unbekannteEinheiten += inventur.unbekannteBarcodes[i].anzahl;
+            }
+
+            // Erst eine Kopie vorbereiten, damit ein Fehler keine Teilübernahme hinterlässt.
+            let neueProdukte = produkte.map(produkt => ({ ...produkt }));
+
+            for (let i = 0; i < inventur.positionen.length; i++)
+            {
+                let position = inventur.positionen[i];
+                let produkt = neueProdukte.find(eintrag =>
+                    eintrag.artikelnummer === position.artikelnummer
+                );
+
+                if (!produkt || produkt.bestand !== position.erwartet)
+                {
+                    alert("Der Lagerbestand oder die Artikelnummer von " + position.name +
+                        " wurde während der Inventur geändert. Bitte die Abweichung vor dem Abschluss klären.");
+                    return;
+                }
+
+                produkt.bestand = position.gezählt;
+            }
+
+            let warnung = "Inventur wirklich abschließen?\n\n" +
+                "Die gezählten Mengen ersetzen die Lagerbestände der Inventurprodukte. " +
+                "Nicht gezählte Produkte werden auf 0 gesetzt.";
+
+            if (unbekannteEinheiten > 0)
+            {
+                warnung += "\n\nUnbekannte Einheiten: " + unbekannteEinheiten +
+                    ". Diese werden nicht ins Lager übernommen. Die Liste wird beim Abschluss geleert.";
+            }
+
+            if (!confirm(warnung))
+            {
+                return;
+            }
+
+            let bisherigeProdukte = produkte;
+            produkte = neueProdukte;
+
+            try
+            {
+                produkteSpeichern();
+            }
+            catch (fehler)
+            {
+                // Bei einem Speicherfehler bleiben Lager und Zählung für einen erneuten Versuch erhalten.
+                produkte = bisherigeProdukte;
+                alert("Die Bestände konnten nicht gespeichert werden. Die Inventur bleibt aktiv. " + fehler.message);
+                return;
+            }
+
+            scannerStoppen();
+            inventur.aktiv = false;
+            inventur.gestartetAm = null;
+            inventur.positionen = [];
+            inventur.unbekannteBarcodes = [];
+
+            document.getElementById("inventurBarcodeEingabe").value = "";
+            document.getElementById("inventurScanMeldung").textContent = "";
+            inventurAnzeigeAktualisieren();
+            produkteAnzeigen();
+            nachbestellungenAnzeigen();
+            alert("Inventur abgeschlossen. Die gezählten Bestände wurden gespeichert.");
+        }
+
         //Übergibt einen eingegebenen Barcode an die Inventurzählung
         function inventurBarcodeBuchen()
         {
@@ -862,6 +943,8 @@
 
             let abbruchButton = document.getElementById("inventurAbbruchButton");
 
+            let abschlussButton = document.getElementById("inventurAbschlussButton");
+
             let erfassung = document.getElementById("inventurErfassung");
 
             let meldung = document.getElementById("inventurMeldung");
@@ -871,6 +954,7 @@
 
             startButton.hidden = inventur.aktiv;
             abbruchButton.hidden = !inventur.aktiv;
+            abschlussButton.hidden = !inventur.aktiv;
             // erfassung.hidden = !inventur.aktiv;
 
             if (!inventur.aktiv)
@@ -898,8 +982,15 @@
 
             let scannerIstInInventur = document.getElementById("inventurScannerPlatz").contains(document.getElementById("scannerBereich"));
 
-            if (inventur.aktiv && scannerIstInInventur)
+            if (scannerIstInInventur)
             {
+                // Auch verspätete Fotoergebnisse dürfen nach dem Abschluss keinen Wareneingang buchen.
+                if (!inventur.aktiv)
+                {
+                    meldung.textContent = "Bitte zuerst eine Inventur starten.";
+                    return;
+                }
+
                 inventurProduktZählen(barcode, meldung);
                 return;
             }
