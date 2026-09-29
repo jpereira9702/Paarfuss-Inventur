@@ -57,6 +57,7 @@
         <section id="startAnsicht" class="app-ansicht">
             <h2>Start</h2>
             <p>Willkommen bei Paarfuss Lager.</p>
+            <button onclick="datenFuerReactExportieren()">Daten für React exportieren</button>
         </section>
 
         <section id="lagerAnsicht" class="app-ansicht" hidden>
@@ -1624,6 +1625,17 @@
             document.getElementById("nameEingabe").focus();
         }
 
+
+        // Übergibt Lager und laufende Inventur an die React-App.
+        function datenFuerReactExportieren()
+        {
+            const adresse = URL.createObjectURL(new Blob([JSON.stringify({ produkte, inventur }, null, 2)], { type: "application/json" }));
+            const link = document.createElement("a");
+            link.href = adresse;
+            link.download = "paarfuss-altbestand.json";
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(adresse), 1000);
+        }
 
         // Gespeicherte Daten müssen vor der ersten Anzeige geladen werden.
         produkteLaden();
