@@ -125,3 +125,18 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
     padding: 20px;
   }
 }
+
+.filialauswahl { max-width: 320px; font-weight: 650; }
+summary { cursor: pointer; padding: 12px 0; font-weight: 600; }
+.lieferung { border-top: 1px solid #dce5df; margin-top: 16px; padding-top: 8px; }
+.nachbestellliste > p + p { margin-top: 12px; }
+@media print {
+  :root { background: white; color: black; font-size: 10pt; }
+  .app { max-width: none; padding: 0; }
+  .app-kopf p, .filialauswahl, .navigation, .meldung, .nicht-drucken { display: none !important; }
+  .inhalt { padding: 0; border: 0; }
+  .produkt-raster { display: block; }
+  .bestellkarte { break-inside: avoid; padding: 12px; margin-top: 12px; }
+  .kritisch { color: black; }
+  .app-kopf { margin-bottom: 16px; }
+}

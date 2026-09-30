@@ -41,6 +41,8 @@ jobs:
         run: npm run build:pages
       - name: Install test browser
         run: npx playwright install --with-deps --only-shell chromium
+      - name: Test browser workflows
+        run: npm run test:e2e
       - name: Check published paths and data migration
         run: npm run test:pages
       - name: Configure GitHub Pages

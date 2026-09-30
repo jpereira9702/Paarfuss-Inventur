@@ -1,397 +1,140 @@
 # Paarfuss Inventur
 
-Mobile Web-App zur Verwaltung des Lagers, zur barcodegestuetzten Inventur und zur Anzeige nachzubestellender Produkte fuer ein Fusspflegeunternehmen.
+Mobile Lager- und Inventur-App für die Filialen **Innsbruck** und **Kematen**.
+Die aktuelle Anwendung liegt in `frontend/` und verwendet React und Vite.
 
-**Projektstatus:** Entwicklung  
-**Stand:** 28. September 2026
-**Geplante Kundenuebergabe:** spaetestens 31. Oktober 2026  
-**Live-Version:** [GitHub Pages](https://jpereira9702.github.io/Paarfuss-Inventur/)
-
-> Die Anwendung wird als echte Kundenversion entwickelt, ist im aktuellen Stand aber noch nicht fuer die finale Uebergabe bereit. Insbesondere fehlen noch eine zentrale Datenbank, Benutzerkonten und die finale Oberflaeche.
-
-## Ziel der Anwendung
-
-Paarfuss Inventur soll die wichtigsten Lagerablaeufe auf Handy, Tablet und Desktop abdecken:
-
-- Produkte und Lagerbestaende verwalten
-- Barcodes live oder ueber ein Foto erkennen
-- Produkte beim Wareneingang schnell erfassen
-- eine Inventur durch Scannen oder manuelle Eingabe durchfuehren
-- Soll- und Istbestaende vergleichen
-- Produkte unter ihrem Mindestbestand anzeigen
-- spaeter mehrere Geraete mit gemeinsamen Daten verwenden
+[GitHub Pages](https://jpereira9702.github.io/Paarfuss-Inventur/) · [Veröffentlichung](VEROEFFENTLICHUNG.md)
 
 ## Aktueller Funktionsumfang
 
-### Navigation
+- Gemeinsamer Produktkatalog mit Artikelnummer, optionalem Barcode, Produktname,
+  Zähleinheit und Bestellpackungsgröße.
+- Getrennte Bestände, Mindest- und Zielbestände für beide Filialen.
+- Sichtbare Filialauswahl; Lagerbuchungen und Inventuren beziehen sich auf diese
+  Filiale. Beim Wechsel werden Scanner beendet und offene Formulare zurückgesetzt.
+- Live-Scanner, Fotoerkennung, OCR mit Bestätigung sowie manuelle Barcodeeingabe.
+  Ein Scan erfasst eine Zähleinheit, keine ganze Bestellpackung.
+- Getrennte, auch parallel laufende Inventuren mit manueller Mengenkorrektur,
+  Wiederaufnahme nach Neuladen und bestätigtem Abschluss inklusive Nullbeständen.
+- Während einer Inventur sind Bestandsbuchungen in dieser Filiale gesperrt.
+  Die andere Filiale kann weiterarbeiten. Umlagerungen benötigen zwei Lager ohne
+  aktive Inventur.
+- Umlagerungen buchen Abgang und Zugang gemeinsam.
+- Gemeinsame Nachbestellliste mit Filialfilter, Bestellvorschlägen und Druck-/PDF-Ansicht.
+- Vermerke für extern aufgegebene Bestellungen mit Datum und Menge,
+  Teillieferungen, Reststornierung und erledigten Bestellvermerken.
+- Sicherung und Import des gesamten Datenstands unter **Einstellungen**.
 
-Die Anwendung besteht aus vier Hauptbereichen:
+### Mengen und Nachbestellungen
 
-| Bereich | Aufgabe |
-| --- | --- |
-| Start | Begruessung und spaeter Firmenlogo sowie wichtige Kennzahlen |
-| Lager | Produkte anlegen, suchen, bearbeiten, loeschen und Bestaende verwalten |
-| Inventur | Eine getrennte Inventur starten und Produkte zaehlen |
-| Nachbestellen | Produkte auf oder unter dem Mindestbestand anzeigen |
+Die Zähleinheit muss pro Produkt eindeutig sein, z. B. Stück, Flaschen oder
+Schachteln. Die Packungsgröße gibt an, wie viele dieser Zähleinheiten eine
+Bestellpackung enthält. Einheitenwechsel sind bei vorhandenen Beständen,
+Bestellvermerken oder laufenden Inventuren gesperrt.
 
-### Lagerverwaltung
-
-Ein Produkt besitzt momentan folgende Daten:
-
-```js
-{
-    artikelnummer: "FC-001",
-    barcode: "",
-    name: "Fusscreme",
-    bestand: 5,
-    mindestbestand: 2
-}
-```
-
-Bereits umgesetzt:
-
-- Produkte hinzufuegen und bearbeiten
-- Produkte nach Bestaetigung loeschen
-- Bestand mit `+` und `-` anpassen
-- negative Bestaende verhindern
-- eindeutige Artikelnummern pruefen
-- optionale, aber bei Eingabe eindeutige Barcodes pruefen
-- Suche nach Name, Artikelnummer oder Barcode
-- Sortierung nach Name, Bestand oder Nachbestellstatus
-- Filter fuer nachzubestellende Produkte
-- Gesamtzahl der Produkte und Nachbestellungen anzeigen
-- vorhandene alte Browserdaten um fehlende Felder ergaenzen
-
-### Barcodeerkennung
-
-Die Anwendung verwendet mehrere kostenlose Erkennungswege:
-
-1. **Live-Scanner:** Liest flache 1D-Barcodes direkt aus dem Kamerabild.
-2. **Foto-Scanner:** Analysiert ein aufgenommenes Bild und ist fuer schwierigere oder gekruemmte Etiketten vorgesehen.
-3. **OCR-Fallback:** Versucht die aufgedruckten Ziffern unter dem Barcode zu lesen.
-4. **Manuelle Eingabe:** Bleibt als Rueckfalloption, wenn Kamera oder Erkennung scheitern.
-
-Verwendete Bibliotheken:
-
-| Bibliothek | Verwendung |
-| --- | --- |
-| `@zxing/browser 0.2.0` | Live-Erkennung aus dem Videobild |
-| `zxing-wasm 3.1.2` | Barcodeerkennung in aufgenommenen Fotos |
-| `Tesseract.js 7.0.0` | OCR der gedruckten Barcodeziffern |
-
-Die Bibliotheken werden derzeit ueber externe CDNs geladen. Fuer die Erkennung ist deshalb eine Internetverbindung erforderlich, solange sie nicht lokal in das Projekt aufgenommen werden.
-
-Scannerverhalten im Lager:
-
-- Ein bekannter Barcode erhoeht den Bestand des passenden Produktes um eins.
-- Ein unbekannter Barcode wird in das Formular uebernommen.
-- Der Benutzer ergaenzt danach Artikelnummer, Produktname und weitere Angaben.
-
-### Inventur
-
-Eine laufende Inventur wird bewusst getrennt vom echten Lagerbestand gehalten:
-
-```js
-{
-    aktiv: false,
-    gestartetAm: null,
-    positionen: [],
-    unbekannteBarcodes: []
-}
-```
-
-Beim Start wird fuer jedes Produkt eine Momentaufnahme angelegt:
-
-- `erwartet`: Lagerbestand beim Start der Inventur
-- `gezaehlt`: waehrend der Inventur erfasste Menge
-
-Bereits umgesetzt:
-
-- Inventur starten und abbrechen
-- Sollbestand als unveraenderte Momentaufnahme halten
-- Einheiten manuell per Barcode zaehlen
-- gemeinsamen Kamera- und Foto-Scanner in den Inventurbereich verschieben
-- Inventurzaehlung vom echten Lagerbestand trennen
-- Anzahl der gezaehlten Einheiten anzeigen
-- unbekannte Barcodes sammeln und Soll-Ist-Differenzen anzeigen
-- Inventur nach Bestaetigung abschliessen und gezaehlte Bestaende uebernehmen
-- laufende Inventur nach Start und jeder Zaehlung lokal speichern
-- offene Inventur nach dem Neuladen automatisch wieder anzeigen
-- Gesamtzaehlmenge pro Produkt manuell korrigieren, auch ohne Barcode
-
-Noch offen:
-
-- aktuelle Kameraanbindung auf dem Handy abschliessend testen
-- Wiederaufnahme einer Inventur auf dem Handy pruefen
-- manuelle Mengenkorrektur und Erfassung ohne Barcode auf dem Handy pruefen
-
-Unter dem bestehenden localStorage-Schluessel `produkte` wird jetzt ein Objekt
-mit `produkte` und `inventur` gespeichert. Alte Produktarrays werden weiterhin
-eingelesen und beim naechsten Speichern in das neue Format uebernommen.
-Beim Abschluss werden Lagerbestand und inaktiver Inventurstatus gemeinsam
-gespeichert. Bei einem Speicherfehler bleibt die vorherige Inventur erhalten.
-
-### Nachbestellungen
-
-Der Bereich zeigt automatisch alle Produkte, fuer die gilt:
-
-```js
-produkt.bestand <= produkt.mindestbestand
-```
-
-Die Berechnung der konkret fehlenden Menge sowie ein Bestellstatus sind fuer einen spaeteren Schritt vorgesehen.
-
-## Datenspeicherung
-
-Produktdaten werden momentan als JSON im `localStorage` des Browsers gespeichert:
-
-```js
-localStorage.setItem("produkte", JSON.stringify(produkte));
-```
-
-Das bedeutet aktuell:
-
-- Daten bleiben nach dem Neuladen im selben Browser erhalten.
-- Jeder Browser und jedes Geraet besitzt eigene Daten.
-- Handy, Tablet und Computer sind noch nicht synchronisiert.
-- Das Loeschen der Browserdaten entfernt auch die gespeicherten Produkte.
-- Eine laufende Inventur wird im selben Browser zwischengespeichert.
-- Es gibt noch keine Benutzerkonten, Rollen oder serverseitigen Backups.
-
-Vor der Kundenuebergabe wird eine zentrale Datenbank benoetigt, damit alle berechtigten Geraete denselben Datenstand verwenden.
-
-## Technischer Aufbau
-
-Das Projekt besteht aktuell aus einer einzigen Datei:
+Bei Bestand auf oder unter dem Mindestbestand gilt:
 
 ```text
-Paarfuss Inventur/
-|-- index.html
-`-- README.md
+Fehlmenge = max(0, Zielbestand − Bestand − offene Bestellmenge)
+Vorschlag = Fehlmenge auf volle Bestellpackungen aufrunden
 ```
 
-`index.html` enthaelt:
+Beispiel: Bestand 2, Mindestbestand 5, Zielbestand 12, Packungsgröße 6 ergibt
+12 nachzubestellende Zähleinheiten (2 Packungen). Bereits bestellte Mengen werden
+abgezogen. Offene Lieferungen bleiben auch dann sichtbar, wenn eine Teillieferung
+den Bestand über den Mindestbestand hebt.
 
-- semantische HTML-Bereiche fuer Navigation und Ansichten
-- grundlegendes CSS fuer Fotovorschau und Scanrahmen
-- Produkt-, Scanner- und Inventurlogik in JavaScript
-- Einbindung der externen Scanner- und OCR-Bibliotheken
+Ein Bestellvermerk versendet keine Bestellung und erhöht keinen Bestand.
+Erst **Lieferung buchen** erhöht den Bestand der angegebenen Filiale und reduziert
+die offene Menge. Bei einer offenen Bestellung verweist ein Scan im Lager auf
+diesen Ablauf, damit die Lieferung nicht doppelt gebucht wird.
 
-Diese Struktur ist waehrend des Lernens gut nachvollziehbar. Vor der finalen Version soll sie mindestens in HTML, CSS und JavaScript aufgeteilt werden, damit Wartung und Tests leichter werden.
+Bestand oberhalb des Zielbestands in der anderen Filiale wird als möglicher
+Umlagerungsvorrat angezeigt. Die Liste bestellt oder transferiert nichts automatisch.
 
-## Wichtige Funktionen
+## Vorhandene Daten und Speicherung
 
-| Funktion | Aufgabe |
-| --- | --- |
-| `ansichtWechseln()` | Wechselt das sichtbare Menue und verschiebt den gemeinsamen Scanner |
-| `standardProdukte()` | Liefert Testprodukte, wenn keine Browserdaten existieren |
-| `produkteLaden()` | Laedt und migriert gespeicherte Produktdaten |
-| `produkteSpeichern()` | Speichert Produkte im aktuellen Browser |
-| `produkteAnzeigen()` | Filtert, sortiert und zeichnet die Lagerliste |
-| `produkthinzufuegen()` | Validiert und speichert neue oder bearbeitete Produkte |
-| `scannerStarten()` | Startet den Live-Kamerascanner |
-| `scannerStoppen()` | Stoppt Decoder und Kameraspuren |
-| `barcodeFotoVerarbeiten()` | Erkennt einen Barcode aus einem Foto |
-| `barcodeZiffernLesen()` | Liest Barcodeziffern als OCR-Fallback |
-| `scanVerarbeiten()` | Leitet einen Scan an Lager oder Inventur weiter |
-| `inventurStarten()` | Erstellt eine neue Inventur-Momentaufnahme |
-| `inventurProduktZaehlen()` | Erhoeht nur die gezaehlte Inventurmenge |
-| `inventurAnzeigeAktualisieren()` | Aktualisiert Status und Zaehler der Inventur |
-| `nachbestellungenAnzeigen()` | Erzeugt die Liste der kritischen Bestaende |
+**Die Daten liegen weiterhin nur im jeweiligen Browser.** Es gibt noch keine
+zentrale Datenbank, Benutzeranmeldung, serverseitigen Berechtigungen oder automatische
+Synchronisierung zwischen Geräten.
 
-Die echten Funktionsnamen im Code enthalten teilweise deutsche Sonderzeichen, beispielsweise `produkthinzufuegen` als `produkthinzufügen` und `inventurProduktZaehlen` als `inventurProduktZählen`.
+Beim ersten Öffnen mit bisherigen Daten fragt die App nach der zugehörigen Filiale.
+Produktbestände und eine laufende Inventur werden ausschließlich dieser Filiale
+zugeordnet. Der gemeinsame Produktkatalog ist auch in der anderen Filiale sichtbar;
+ihre Bestände, Mindest- und Zielbestände beginnen bei 0. Bei alten Produkten werden
+Zähleinheit `Stück`, Packungsgröße 1 und Zielbestand gleich Mindestbestand ergänzt.
+Diese Vorgaben sollten anschließend geprüft und angepasst werden.
 
-## Anwendung starten
+Vor der Zuordnung kann der bisherige Stand gesichert werden. Enthält er bereits
+zusammengefasste Mengen beider Filialen, müssen die Mengen anhand der tatsächlichen
+Bestände getrennt werden; die App kann diese Aufteilung nicht erraten.
 
-### Veroeffentlichte Version
+Der React-Speicherschlüssel bleibt `paarfuss.react.v1`; die neue Datenstruktur trägt
+intern `version: 2` und enthält Produktkatalog mit Filialbeständen, beide Inventuren
+und Bestellvermerke. Der alte Schlüssel `produkte` wird weiterhin eingelesen, wenn
+noch keine React-Daten existieren, und bleibt unverändert.
 
-Die aktuelle GitHub-Pages-Version ist erreichbar unter:
+- Neue Sicherungen enthalten beide Filialen, Inventuren und Bestellvermerke.
+- Alte Produktarrays und Sicherungen mit `{ produkte, inventur }` bleiben importierbar;
+  die Zielfiliale muss ausdrücklich gewählt werden.
+- Ein bestätigter Import ersetzt den **gesamten** Stand beider Filialen, ohne
+  Zusammenführung. Vorher eine Sicherung exportieren.
+- Daten werden vor dem Speichern geprüft. Speicherfehler lassen den vorherigen
+  Zustand bestehen. Ein veralteter Tab darf neuere Daten nicht überschreiben.
+- Beschädigte gespeicherte Daten werden nicht automatisch gelöscht oder ersetzt.
 
-<https://jpereira9702.github.io/Paarfuss-Inventur/>
+## Lokal entwickeln und prüfen
 
-Auf iPhone und iPad kann Safari eine alte Version zwischenspeichern. Nach einer neuen Veroeffentlichung deshalb die Seite neu laden. Falls noetig, Safari vollstaendig schliessen oder die Websitedaten entfernen.
-
-### Lokal
-
-`index.html` kann direkt im Browser geoeffnet werden. Kamerafunktionen sind lokal ueber eine `file://`-Adresse jedoch je nach Browser eingeschraenkt. Fuer verlaessliche Kameratests sollte die HTTPS-Version auf GitHub Pages verwendet werden.
-
-## Entwicklung und Veroeffentlichung
-
-Aktueller Entwicklungsbranch:
-
-```text
-Barcodesearch
-```
-
-Typischer Ablauf nach einer getesteten Aenderung:
-
-```bash
-git status
-git add index.html README.md
-git commit -m "Kurze Beschreibung der Aenderung"
-git push origin Barcodesearch
-```
-
-GitHub Pages aktualisiert die Live-Version nur aus dem in den Repository-Einstellungen konfigurierten Branch und Ordner. Die URL bleibt bei neuen Deployments gleich.
-
-## Testcheckliste
-
-### Lager
-
-- Produkt mit und ohne Barcode anlegen
-- doppelte Artikelnummer ablehnen
-- doppelten, nicht leeren Barcode ablehnen
-- Produkt bearbeiten und loeschen
-- Bestand erhoehen und verringern
-- negativen Bestand verhindern
-- nach Name, Artikelnummer und Barcode suchen
-- alle Sortierungen und den Nachbestellfilter pruefen
-- Seite neu laden und gespeicherte Daten kontrollieren
-
-### Scanner
-
-- Live-Scanner auf Handy und Tablet starten und stoppen
-- bekannten Barcode scannen und genau eine Buchung pruefen
-- unbekannten Barcode scannen und Formular pruefen
-- flaches Produkt testen
-- runde Flasche beziehungsweise gekruemmtes Etikett fotografieren
-- Foto mit schlechtem Licht und groesserem Abstand testen
-- manuellen Fallback nach einem Erkennungsfehler pruefen
-- Kamera beim Menuewechsel und nach einem Treffer kontrollieren
-
-### Inventur
-
-- Inventur mit vorhandenen Produkten starten
-- bekannten Barcode manuell erfassen
-- bekannten Barcode mit Live- und Foto-Scanner erfassen
-- denselben Artikel mehrfach zaehlen
-- unbekannten Barcode testen
-- sicherstellen, dass der echte Lagerbestand waehrend der Zaehlung unveraendert bleibt
-- Inventur abbrechen und Zustand kontrollieren
-
-Die juengsten Aenderungen an der Scannerweiterleitung und am manuellen Inventur-Fallback sind am 24. August 2026 noch nicht auf dem Handy getestet.
-
-## Bekannte Grenzen
-
-- Daten liegen nur lokal im jeweiligen Browser.
-- Laufende Inventuren sind lokal gespeichert und noch nicht zwischen Geraeten synchronisiert.
-- Eine Inventurhistorie fehlt noch.
-- Es gibt noch keine Anmeldung oder Benutzerrollen.
-- Es gibt noch keinen serverseitigen Aenderungsverlauf und kein Backup.
-- Die Oberflaeche verwendet noch weitgehend Browser-Standarddesign.
-- Scannerbibliotheken werden extern geladen.
-- Barcodeerkennung auf stark gekruemmten Oberflaechen bleibt von Licht, Fokus, Abstand und sichtbarem Barcodebereich abhaengig.
-- Der aktuelle Code liegt noch vollstaendig in einer einzelnen HTML-Datei.
-
-## Roadmap bis zur Kundenuebergabe
-
-### Phase 1: Inventur abschliessen
-
-- [x] Inventur getrennt vom Lagerbestand starten
-- [x] Produkte manuell zaehlen
-- [x] gemeinsamen Scanner in den Inventurbereich integrieren
-- [ ] Scannerweiterleitung auf dem Handy testen
-- [x] unbekannte Barcodes erfassen und anzeigen
-- [x] Soll-Ist-Differenzen je Produkt anzeigen
-- [x] Inventurabschluss mit Bestaetigung bauen
-- [x] gezaehlte Werte kontrolliert in das Lager uebernehmen
-- [x] laufende Inventur zwischenspeichern
-- [ ] Wiederaufnahme einer Inventur auf dem Handy testen
-- [x] manuelle Mengenkorrektur und Produkte ohne Barcode unterstuetzen
-- [ ] manuelle Mengenkorrektur auf dem Handy testen
-
-Automatisierte Tests fuer Speicherung, Wiederaufnahme, Abschluss, Abbruch,
-Speicherfehler und alte Datenformate:
+Im Ordner `frontend`:
 
 ```sh
-node --test tests/inventur-speichern.test.cjs
+npm ci
+npm run dev
+npm test
+npm run lint
+npm run test:e2e
+npm run build:pages
+npm run test:pages
 ```
 
-### Phase 2: Scanner stabilisieren
+Für Browsertests wird Chromium benötigt (`npx playwright install chromium`).
+Kamerazugriff benötigt HTTPS oder localhost. Automatisierte Tests ersetzen keine
+Kameratests auf echten Handys, besonders bei runden oder schlecht beleuchteten Etiketten.
 
-- [ ] Live-, Foto- und manuellen Ablauf gemeinsam testen
-- [ ] Mehrfachscans und doppelte Buchungen verhindern
-- [ ] klare Erfolgs-, Warte- und Fehlermeldungen erstellen
-- [ ] Kamera beim Menuewechsel verlaesslich stoppen
-- [ ] Tests mit echten flachen und runden Produkten durchfuehren
+Die Tests decken unter anderem Datenmigration, Filialtrennung, Inventuren,
+Packungsrundung, Bestellungen, Teillieferungen, Umlagerungen, Speicherfehler,
+veraltete Tabs, Scannerabläufe, mobile Darstellung und Druckansicht ab.
 
-### Phase 3: Arbeitsablaeufe vervollstaendigen
+## Aufbau
 
-- [ ] Startseite mit Firmenlogo und Kennzahlen ausbauen
-- [ ] aktiven Navigationspunkt markieren
-- [ ] Nachbestellmenge berechnen
-- [ ] Bestellstatus vorsehen
-- [ ] sichere Abbrechen- und Bestaetigungsablaeufe ergaenzen
+```text
+frontend/src/
+  App.jsx                    Navigation und Filialauswahl
+  data/inventur.js           Produkt- und Inventurlogik eines Lagers
+  data/filialen.js           Filialen, Migration, Bestellungen und Umlagerungen
+  data/speicher.js           Geprüfte lokale Speicherung
+  hooks/useInventurDaten.js  Gemeinsamer Zustand und Filialansichten
+  pages/                    Start, Lager, Inventur, Nachbestellen, Einstellungen
+  components/               Scanner und einmalige Filialzuordnung
+  scanner/                  Kamera, Fotoerkennung und OCR
+```
 
-### Phase 4: Zentrale Daten und Sicherheit
+`index.html` im Hauptverzeichnis ist die bisherige App. Sie bleibt unter `/alt/`
+für den Export älterer Daten erreichbar. Der Pages-Workflow baut und prüft die
+React-App samt Datenübernahme, bevor `frontend/dist` veröffentlicht wird.
 
-- [ ] geeignete gemeinsame Datenbank auswaehlen
-- [ ] Produkt-, Bestands- und Inventurdaten zentral speichern
-- [ ] Synchronisierung zwischen Handy, Tablet und Computer umsetzen
-- [ ] Benutzeranmeldung und Rollen einfuehren
-- [ ] kritische Aktionen schuetzen
-- [ ] Aenderungsverlauf und Backup-Konzept erstellen
+## Nächster Meilenstein: gemeinsame Datenbank und Anmeldung
 
-### Phase 5: Unternehmensgerechte UI und PWA
+Vereinbart sind persönliche Konten für Chefin und Tochter mit gleichen vollständigen
+Administrationsrechten. Spätere Mitarbeitende erhalten Zugang zu den zugewiesenen
+Filialen für Inventur und Wareneingang. Bestellungen erfolgen weiterhin extern.
 
-- [ ] Firmenlogo, Farben und Typografie einbauen
-- [ ] mobile Navigation und grosse Scanbedienelemente gestalten
-- [ ] Lade-, Leer-, Erfolgs- und Fehlerzustaende gestalten
-- [ ] Darstellung auf Handy, Tablet und Desktop optimieren
-- [ ] App installierbar machen
-- [ ] App-Symbol und PWA-Manifest hinzufuegen
-- [ ] Verhalten bei fehlender Internetverbindung definieren
+Noch umzusetzen sind insbesondere:
 
-### Phase 6: Qualitaet und Uebergabe
+- Zentrale Speicherung mit sicherer Behandlung gleichzeitiger Buchungen.
+- Anmeldung und serverseitig durchgesetzte Filial- und Benutzerrechte.
+- Nachvollziehbare Buchungshistorie mit Benutzer und Zeitpunkt.
+- Serverseitige Sicherung und getestete Wiederherstellung.
+- Gemeinsamer Gerätetest, Kundenfeedback und abschließende Übergabe.
 
-- [ ] Code in wartbare Dateien beziehungsweise Module aufteilen
-- [ ] Syntax-, Funktions- und Geraetetests abschliessen
-- [ ] Testinventur mit echten Produkten durchfuehren
-- [ ] Kundenfeedback einarbeiten
-- [ ] Testdaten entfernen und echte Kundendaten vorbereiten
-- [ ] Bedienungsanleitung und Einweisung erstellen
-- [ ] Produktionsversion sichern und veroeffentlichen
-- [ ] finale Kundenuebergabe durchfuehren
-
-## Zeitplan bis Ende Oktober 2026
-
-Bei etwa zwei bis drei Stunden Arbeit pro Tag an vier bis fuenf Tagen pro Woche ist eine klar begrenzte Version 1 bis Ende Oktober realistisch.
-
-| Zeitraum | Ziel |
-| --- | --- |
-| Bis Anfang September | Inventur und Scannerablaeufe fertigstellen |
-| September, Woche 2-3 | Code strukturieren und zentrale Datenbank anbinden |
-| September, Woche 4 | Anmeldung, Rollen und grundlegende Sicherheit |
-| Anfang Oktober | Unternehmensgerechte UI, mobile Optimierung und PWA |
-| Mitte Oktober | Nachbestellungen, Fehlerfaelle und echte Produkttests |
-| Letzte zwei Oktoberwochen | Kundenfeedback, Fehlerkorrekturen, Anleitung und Uebergabe |
-
-Angestrebte Meilensteine:
-
-- **15. Oktober 2026:** testfaehige Kundenversion
-- **31. Oktober 2026:** finale Version-1-Uebergabe
-
-Komfortfunktionen wie mehrere Filialen, umfangreiche Statistiken, automatische Bestellungen oder eine vollstaendige Offline-Synchronisierung gehoeren bei Zeitdruck in eine spaetere Version 2.
-
-## Datenschutz und Sicherheit
-
-Vor dem Einsatz mit echten Unternehmensdaten muessen mindestens folgende Punkte geklaert und umgesetzt werden:
-
-- Welche personenbezogenen Daten werden gespeichert?
-- Wer darf Produkte und Bestaende sehen oder aendern?
-- Wie werden Benutzer authentifiziert?
-- Wie werden Daten gesichert und wiederhergestellt?
-- Wie lange werden Aenderungs- und Inventurprotokolle aufbewahrt?
-- Wo wird die zentrale Datenbank betrieben?
-- Welche Datenschutzinformationen benoetigt der Kunde?
-
-Die aktuelle GitHub-Pages-Version ist eine statische Web-App und ersetzt diese Sicherheits- und Datenschutzmassnahmen noch nicht.
-
-## Projektgrundsaetze
-
-- Funktionen werden schrittweise entwickelt und nach jedem Abschnitt getestet.
-- Aenderungen werden mit Vorher-/Nachher-Beispielen erklaert.
-- Barcodeerkennung muss immer eine manuelle Rueckfalloption besitzen.
-- Eine Inventur darf den echten Lagerbestand erst nach ausdruecklicher Bestaetigung veraendern.
-- Mobile Bedienung und echte Arbeitsablaeufe haben Vorrang vor dekorativen Funktionen.
-- Neue Abhaengigkeiten sollen moeglichst kostenlos, nachvollziehbar und langfristig wartbar sein.
+Die lokale Filialauswahl ist eine Auswahl des Arbeitslagers und keine Zugriffskontrolle.

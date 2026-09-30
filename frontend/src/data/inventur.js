@@ -29,11 +29,15 @@ function eindeutig(liste, feld, optional = false) {
 export function produktPruefen(p) {
   if (!p || typeof p !== 'object') throw new Error('Ungültiges Produkt.')
   return {
+    id: text(p.id ?? p.artikelnummer, 'Produktkennung'),
     artikelnummer: text(p.artikelnummer, 'Artikelnummer'),
     barcode: text(p.barcode ?? '', 'Barcode', true),
     name: text(p.name, 'Produktname'),
     bestand: menge(p.bestand),
     mindestbestand: menge(p.mindestbestand),
+    zielbestand: menge(p.zielbestand ?? p.mindestbestand),
+    einheit: text(p.einheit ?? 'Stück', 'Mengeneinheit'),
+    packung: menge(p.packung ?? 1),
   }
 }
 
@@ -42,6 +46,12 @@ export function datenPruefen(eingabe) {
   const daten = Array.isArray(eingabe) ? { produkte: eingabe, inventur: leereInventur() } : eingabe
   if (!daten || !Array.isArray(daten.produkte)) throw new Error('Die Datei enthält keine gültige Produktliste.')
   const produkte = daten.produkte.map((p, i) => produktPruefen({ ...p, artikelnummer: p?.artikelnummer ?? `ALT-${i + 1}` }))
+  for (const p of produkte) {
+    if (!p.packung) throw new Error('Eine Bestellpackung muss mindestens eine Zähleinheit enthalten.')
+    if (p.zielbestand < p.mindestbestand) throw new Error('Der Zielbestand darf nicht unter dem Mindestbestand liegen.')
+    if (!Number.isSafeInteger(Math.ceil(p.zielbestand / p.packung) * p.packung)) throw new Error('Zielbestand und Packungsgröße ergeben eine zu große Bestellmenge.')
+  }
+  eindeutig(produkte, 'id')
   eindeutig(produkte, 'artikelnummer')
   eindeutig(produkte, 'barcode', true)
   const inv = daten.inventur
@@ -69,8 +79,9 @@ export function datenPruefen(eingabe) {
 }
 
 export function produktSpeichern(daten, eingabe, original = null) {
-  const produkt = produktPruefen(eingabe)
-  if (original !== null && !daten.produkte.some(p => p.artikelnummer === original)) throw new Error('Das bearbeitete Produkt existiert nicht mehr.')
+  const vorher = daten.produkte.find(p => p.artikelnummer === original)
+  if (original !== null && !vorher) throw new Error('Das bearbeitete Produkt existiert nicht mehr.')
+  const produkt = produktPruefen({ ...eingabe, id: vorher?.id ?? eingabe.id })
   const produkte = original === null
     ? [...daten.produkte, produkt]
     : daten.produkte.map(p => p.artikelnummer === original ? produkt : p)

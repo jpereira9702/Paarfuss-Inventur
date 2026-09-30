@@ -29,7 +29,7 @@ export default function Scanner({ onBarcode, aktion }) {
 
   return <section className="karte scanner" aria-label="Barcode erfassen">
     <h3>{aktion}</h3>
-    <p>Ein Scan erfasst ein Stück. Für ein weiteres Stück den Scanner erneut starten.</p>
+    <p>Ein Scan erfasst eine Zähleinheit des Produkts. Für eine weitere Einheit den Scanner erneut starten.</p>
     <div className="aktionen">
       <button type="button" disabled={status.startet || status.modus !== 'bereit'} onClick={() => scanner.current?.starten()}>Kamera starten</button>
       {(status.modus !== 'bereit' || status.startet) && <button type="button" onClick={() => scanner.current?.stoppen()}>Scanner schließen</button>}

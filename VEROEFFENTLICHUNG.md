@@ -32,8 +32,10 @@ Beim ersten Speichern entsteht eine getrennte React-Kopie. Die alte App wird
 anschließend nicht mehr mit der neuen synchronisiert.
 
 Für einen anderen Browser oder ein anderes Gerät: In der bisherigen App unter
-**Start → Daten für React exportieren** sichern und in React unter **Start**
-importieren. Vor einem ersetzenden Import gegebenenfalls den React-Stand exportieren.
+**Start → Daten für React exportieren** sichern und in React
+unter **Einstellungen → Datensicherung** importieren. Vor einem ersetzenden Import den React-Stand exportieren.
+Alte Bestände müssen ausdrücklich Innsbruck oder Kematen zugeordnet werden.
+Ein Import ersetzt den gesamten Stand beider Filialen.
 Computer und Handy synchronisieren sich erst nach der späteren Datenbankanbindung.
 
 ## Lokal prüfen

@@ -94,7 +94,7 @@ test('laufende Inventur wird nach Neuladen wiederhergestellt', () => {
   const storage = speicher()
   const daten = inventurZaehlen(inventurStarten(basis()), produkt.barcode)
   speichern(storage, laden(storage), daten)
-  assert.deepEqual(laden(storage).daten, daten)
+  assert.deepEqual(laden(storage).daten, datenPruefen(daten))
 })
 test('Speicherfehler verändert weder vorherigen Stand noch gesicherte Daten', () => {
   const storage = speicher()

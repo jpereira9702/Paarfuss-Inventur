@@ -1,4 +1,4 @@
-import { datenPruefen, leereDaten } from './inventur.js'
+import { betriebPruefen as datenPruefen, leererBetrieb as leereDaten } from './filialen.js'
 
 export const SPEICHER_KEY = 'paarfuss.react.v1'
 export const ALT_KEY = 'produkte'
